@@ -25,8 +25,37 @@ const router = express.Router();
 //   }
 // });
 
+// router.post("/register", async (req, res) => {
+//   const { full_name, email, password, role, fingerprint_template } = req.body;
+
+//   try {
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     const sql = `
+//       INSERT INTO users 
+//       (full_name, email, password_hash, fingerprint_template, role) 
+//       VALUES (?, ?, ?, ?, ?)
+//     `;
+
+//     db.query(
+//       sql,
+//       [full_name, email, hashedPassword, fingerprint_template, role],
+//       (err, result) => {
+//         if (err) return res.status(500).json(err);
+
+//         res.json({ message: "User registered with biometric successfully" });
+//       }
+//     );
+//   } catch (error) {
+//     res.status(500).json(error);
+//   }
+// });
+
+
 router.post("/register", async (req, res) => {
-  const { full_name, email, password, role, fingerprint_template } = req.body;
+  const { full_name, email, password, fingerprint_template } = req.body;
+
+  const role = "conductor"; // default role
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -41,15 +70,20 @@ router.post("/register", async (req, res) => {
       sql,
       [full_name, email, hashedPassword, fingerprint_template, role],
       (err, result) => {
-        if (err) return res.status(500).json(err);
+        if (err) {
+          console.log(err); // 🔥 IMPORTANT for debugging
+          return res.status(500).json({ message: "Database error", error: err });
+        }
 
-        res.json({ message: "User registered with biometric successfully" });
+        res.json({ message: "User registered successfully" });
       }
     );
   } catch (error) {
-    res.status(500).json(error);
+    console.log(error);
+    res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 /* ================= LOGIN ================= */
