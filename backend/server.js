@@ -17,6 +17,8 @@ app.get("/", (req, res) => {
 const passengerRoutes = require("./routes/passengerRoutes");
 app.use("/api/passengers", passengerRoutes);
 
+const boardingRoutes = require("./routes/boardingRoutes");
+app.use("/api/boarding", boardingRoutes);
 
 app.listen(5000, () => {
   console.log("Server running on port 5000");
