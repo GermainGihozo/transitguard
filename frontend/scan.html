@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TransitGuard - Biometric Scan</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: #0f172a;
+      color: white;
+    }
+
+    .scanner-box {
+      width: 250px;
+      height: 250px;
+      border: 3px solid #00ffff;
+      border-radius: 20px;
+      margin: 20px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+      background: #111827;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 4px;
+      background: #00ffff;
+      animation: scan 2s linear infinite;
+    }
+
+    @keyframes scan {
+      0% { top: 0; }
+      100% { top: 100%; }
+    }
+
+    .success-glow {
+      border-color: #22c55e !important;
+      box-shadow: 0 0 30px #22c55e;
+    }
+
+    .error-glow {
+      border-color: #ef4444 !important;
+      box-shadow: 0 0 30px #ef4444;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container text-center mt-5">
+  <h2>Biometric Boarding Scanner</h2>
+
+  <div id="scanner" class="scanner-box">
+    🖐
+    <div class="scan-line"></div>
+  </div>
+
+  <input type="text" id="fingerprint" class="form-control w-50 mx-auto mb-3"
+         placeholder="Enter Fingerprint Template">
+
+  <button class="btn btn-primary" onclick="scan()">Scan Passenger</button>
+
+  <div id="result" class="mt-4"></div>
+</div>
+
+<!-- <script>
+const scanner = document.getElementById("scanner");
+
+async function scan() {
+  const token = localStorage.getItem("token");
+  const fingerprint = document.getElementById("fingerprint").value;
+
+  scanner.classList.remove("success-glow", "error-glow");
+
+  const res = await fetch("http://localhost:5000/api/boarding/scan", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({ fingerprint_template: fingerprint })
+  });
+
+  const data = await res.json();
+
+  if (res.ok) {
+    scanner.classList.add("success-glow");
+    document.getElementById("result").innerHTML =
+      `<div class="alert alert-success">
+        ✅ Boarding Approved <br>
+        Passenger: ${data.passenger_name || ""}
+      </div>`;
+  } else {
+    scanner.classList.add("error-glow");
+    document.getElementById("result").innerHTML =
+      `<div class="alert alert-danger">
+        ❌ Boarding Denied <br>
+        ${data.message}
+      </div>`;
+  }
+}
+</script> -->
+<script>
+const scanner = document.getElementById("scanner");
+const resultBox = document.getElementById("result");
+let scanning = false;
+
+// Optional sound effects (you can add real mp3 later)
+function playBeep(type){
+  const audio = new Audio(
+    type === "success"
+      ? "https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"
+      : "https://actions.google.com/sounds/v1/alarms/beep_short.ogg"
+  );
+  audio.play();
+}
+
+async function scan() {
+
+  if (scanning) return; // prevent double click
+  scanning = true;
+
+  const token = localStorage.getItem("token");
+  const fingerprint = document.getElementById("fingerprint").value;
+
+  if (!fingerprint) {
+    alert("Please enter fingerprint template");
+    scanning = false;
+    return;
+  }
+
+  scanner.classList.remove("success-glow", "error-glow");
+  resultBox.innerHTML = `<div class="text-info">🔄 Scanning...</div>`;
+
+  try {
+
+    const res = await fetch("http://localhost:5000/api/boarding/scan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ fingerprint_template: fingerprint })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+
+      scanner.classList.add("success-glow");
+      playBeep("success");
+
+      resultBox.innerHTML =
+        `<div class="alert alert-success">
+          ✅ Boarding Approved <br>
+          Passenger: <strong>${data.passenger_name}</strong><br>
+          Seat: ${data.seat_number || "N/A"}
+        </div>`;
+
+    } else {
+
+      scanner.classList.add("error-glow");
+      playBeep("error");
+
+      resultBox.innerHTML =
+        `<div class="alert alert-danger">
+          ❌ Boarding Denied <br>
+          ${data.message}
+        </div>`;
+    }
+
+  } catch (err) {
+
+    scanner.classList.add("error-glow");
+    resultBox.innerHTML =
+      `<div class="alert alert-danger">
+        ❌ Server Error
+      </div>`;
+  }
+
+  // Auto reset after 3 seconds
+  setTimeout(() => {
+    scanner.classList.remove("success-glow", "error-glow");
+    resultBox.innerHTML = "";
+    scanning = false;
+  }, 3000);
+}
+</script>
+</body>
+</html>
