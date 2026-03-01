@@ -30,9 +30,9 @@ Your project is now fully configured for cloud deployment.
 
 ---
 
-## 🚀 Quick Start - Deploy in 5 Minutes
+## 🚀 Quick Start - Deploy in 10 Minutes
 
-### Recommended: Railway (Free Tier + MySQL)
+### Recommended: Render (Free Tier + Easy Setup)
 
 ```bash
 # 1. Generate secrets
@@ -43,18 +43,22 @@ git add .
 git commit -m "Ready for deployment"
 git push origin main
 
-# 3. Deploy to Railway
-# Go to railway.app → New Project → Deploy from GitHub
-# Add MySQL database
-# Set environment variables (JWT_SECRET, BIOMETRIC_SECRET)
-# Railway auto-deploys!
+# 3. Set up free MySQL database
+# Option A: PlanetScale (planetscale.com) - Free forever
+# Option B: Railway (railway.app) - Free tier
 
-# 4. Import database schema
-railway connect MySQL
-# Then: source backend/database/schema.sql
+# 4. Deploy to Render
+# Go to render.com → New Web Service → Connect GitHub
+# Add environment variables (DB credentials + secrets)
+# Render auto-deploys!
+
+# 5. Import database schema
+# Connect to your MySQL and import schema
 ```
 
 **That's it!** Your app is live.
+
+**📖 See RENDER_QUICK_START.md for detailed 10-minute guide!**
 
 ---
 
@@ -62,10 +66,10 @@ railway connect MySQL
 
 | Platform | Best For | Free Tier | Database | Difficulty |
 |----------|----------|-----------|----------|------------|
+| **Render** | Full-stack apps | ✅ Yes | External MySQL | ⭐ Easy |
 | **Railway** | Full-stack apps | ✅ Yes | MySQL included | ⭐ Easy |
-| **Render** | Separate services | ✅ Yes | External needed | ⭐⭐ Medium |
 | **Docker** | Any cloud/local | Depends | Self-hosted | ⭐⭐⭐ Advanced |
-| **Vercel + Railway** | Optimized split | ✅ Yes | Railway MySQL | ⭐⭐ Medium |
+| **Vercel** | Frontend only | ✅ Yes | External needed | ⭐⭐ Medium |
 
 ---
 

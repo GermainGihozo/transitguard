@@ -1,0 +1,166 @@
+╔══════════════════════════════════════════════════════════════╗
+║         RENDER DEPLOYMENT CHECKLIST - TransitGuard           ║
+╚══════════════════════════════════════════════════════════════╝
+
+BEFORE YOU START:
+□ Code is working locally
+□ All changes committed to Git
+□ GitHub repository is up to date
+
+STEP 1: GENERATE SECRETS
+□ Run: npm run generate-secrets
+□ Copy JWT_SECRET (save it!)
+□ Copy BIOMETRIC_SECRET (save it!)
+
+STEP 2: PUSH TO GITHUB
+□ Run: git add .
+□ Run: git commit -m "Ready for Render"
+□ Run: git push origin main
+
+STEP 3: CREATE RENDER ACCOUNT
+□ Go to render.com
+□ Sign up with GitHub
+□ Verify email
+
+STEP 4: SET UP DATABASE (Choose one)
+
+Option A - PlanetScale (Recommended):
+□ Go to planetscale.com
+□ Create account
+□ Create database: transitguard
+□ Get connection credentials
+□ Save: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+
+Option B - Railway:
+□ Go to railway.app
+□ New Project → Add MySQL
+□ Get connection credentials
+□ Save: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+
+STEP 5: CREATE WEB SERVICE ON RENDER
+□ Click "New +" → "Web Service"
+□ Connect your GitHub repository
+□ Select "transitguard" repo
+
+STEP 6: CONFIGURE SERVICE
+□ Name: transitguard
+□ Region: Oregon (or closest)
+□ Branch: main
+□ Runtime: Node
+□ Build Command: npm install && npm run build
+□ Start Command: npm start
+□ Instance Type: Free
+
+STEP 7: ADD ENVIRONMENT VARIABLES
+Click "Advanced" → Add these variables:
+
+□ NODE_ENV = production
+□ PORT = 10000
+□ DB_HOST = (from your database)
+□ DB_USER = (from your database)
+□ DB_PASSWORD = (from your database)
+□ DB_NAME = transitguard_prod
+□ JWT_SECRET = (from Step 1)
+□ BIOMETRIC_SECRET = (from Step 1)
+□ RATE_LIMIT_MAX = 100
+
+STEP 8: DEPLOY
+□ Click "Create Web Service"
+□ Wait 5-10 minutes for deployment
+□ Check logs for errors
+
+STEP 9: IMPORT DATABASE SCHEMA
+□ Connect to your database
+□ Import: backend/database/schema.sql
+□ Import: backend/database/seed.sql (optional)
+
+STEP 10: TEST DEPLOYMENT
+□ Visit: https://your-app.onrender.com
+□ Test health: curl https://your-app.onrender.com/
+□ Check login page loads
+□ Create test user
+□ Login successfully
+
+STEP 11: POST-DEPLOYMENT
+□ Set up uptime monitor (uptimerobot.com)
+□ Configure database backups
+□ Update README with live URL
+□ Share with team
+
+╔══════════════════════════════════════════════════════════════╗
+║                    TROUBLESHOOTING                           ║
+╚══════════════════════════════════════════════════════════════╝
+
+Build Failed?
+□ Check Render logs
+□ Verify package.json
+□ Test locally: npm install && npm run build
+
+Database Connection Failed?
+□ Verify DB credentials
+□ Check database allows external connections
+□ Test connection locally
+
+502 Error?
+□ Wait 2-3 minutes (app starting)
+□ Check logs for errors
+□ Verify all env variables set
+
+App Slow?
+□ Free tier sleeps after 15 min
+□ Set up uptime monitor
+□ Or upgrade to paid tier
+
+╔══════════════════════════════════════════════════════════════╗
+║                    HELPFUL COMMANDS                          ║
+╚══════════════════════════════════════════════════════════════╝
+
+Generate secrets:
+  npm run generate-secrets
+
+Test health endpoint:
+  curl https://your-app.onrender.com/
+
+Create admin user:
+  curl -X POST https://your-app.onrender.com/api/auth/register \
+    -H "Content-Type: application/json" \
+    -d '{"username":"admin","password":"Admin123!","role":"super_admin"}'
+
+View logs:
+  Go to Render Dashboard → Your Service → Logs
+
+Redeploy:
+  Render Dashboard → Manual Deploy → Deploy latest commit
+
+╔══════════════════════════════════════════════════════════════╗
+║                    IMPORTANT URLS                            ║
+╚══════════════════════════════════════════════════════════════╝
+
+Render Dashboard: https://dashboard.render.com
+PlanetScale: https://planetscale.com
+Railway: https://railway.app
+UptimeRobot: https://uptimerobot.com
+
+Documentation:
+  Quick Start: RENDER_QUICK_START.md
+  Full Guide: RENDER_DEPLOYMENT.md
+  Checklist: DEPLOYMENT_CHECKLIST.md
+
+╔══════════════════════════════════════════════════════════════╗
+║                    SUCCESS CRITERIA                          ║
+╚══════════════════════════════════════════════════════════════╝
+
+Your deployment is successful when:
+✓ Health endpoint returns 200 OK
+✓ Frontend loads without errors
+✓ Login page is accessible
+✓ Can create and login users
+✓ Database queries work
+✓ No errors in Render logs
+✓ HTTPS is working
+
+╔══════════════════════════════════════════════════════════════╗
+║              🎉 READY TO DEPLOY TO RENDER! 🎉                ║
+╚══════════════════════════════════════════════════════════════╝
+
+Start with: RENDER_QUICK_START.md

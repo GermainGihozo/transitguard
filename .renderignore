@@ -1,0 +1,19 @@
+# Files to ignore during Render deployment
+.git
+.gitignore
+*.md
+!README.md
+.vscode
+.idea
+*.log
+test-*.js
+frontend/node_modules
+frontend/src
+frontend/public
+frontend/*.html
+frontend/*.config.js
+frontend/package*.json
+*.sh
+docker-compose.yml
+Dockerfile
+.dockerignore

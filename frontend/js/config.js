@@ -1,8 +1,11 @@
 // Frontend configuration
 const CONFIG = {
-  API_BASE_URL: window.location.hostname === "localhost"
-    ? "http://localhost:5000/api"
-    : "/api", // Use relative path in production
+  // API URL - can be overridden by environment variable
+  API_BASE_URL: window.VITE_API_URL || (
+    window.location.hostname === "localhost"
+      ? "http://localhost:5000/api"
+      : "/api" // Use relative path in production
+  )
   
   // Token storage keys
   TOKEN_KEY: "token",
