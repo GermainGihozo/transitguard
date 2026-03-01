@@ -41,9 +41,14 @@ if (process.env.NODE_ENV === "production") {
   const frontendPath = path.join(__dirname, "../frontend/dist");
   app.use(express.static(frontendPath));
   
-  // Handle client-side routing
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendPath, "index.html"));
+  // Handle client-side routing - Express 5 compatible
+  app.use((req, res, next) => {
+    // If no route matched and it's not an API call, serve index.html
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(frontendPath, "index.html"));
+    } else {
+      next();
+    }
   });
   console.log("✓ Serving frontend from", frontendPath);
 }
