@@ -1,13 +1,100 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TransitGuard - Smart Biometric Tracking</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to right, #0f172a, #1e293b);
+      color: white;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .card {
+      background: #111827;
+      border-radius: 20px;
+      padding: 40px;
+      width: 420px;
+    }
+
+    .btn-custom {
+      width: 100%;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card shadow-lg">
+  <h2>🚍 TransitGuard</h2>
+  <p class="mb-4">Smart Biometric Passenger Tracking System</p>
+
+  <div id="actions">
+    <button onclick="goLogin()" class="btn btn-primary btn-custom">
+      Login to System
+    </button>
+  </div>
+</div>
+
+<script>
+
+// ===== AUTH GATEWAY =====
+const token = localStorage.getItem("token");
+const userData = localStorage.getItem("user");
+
+if (token && userData) {
+  try {
+    const user = JSON.parse(userData);
+    redirectUser(user.role);
+  } catch (err) {
+    // Corrupted storage → reset
+    localStorage.clear();
+  }
+}
+
+function redirectUser(role) {
+  switch(role) {
+    case "super_admin":
+      window.location.href = "super_admin_dashboard.html";
+      break;
+
+    case "company_admin":
+      window.location.href = "company_dashboard.html";
+      break;
+
+    case "station_officer":
+      window.location.href = "station_dashboard.html";
+      break;
+
+    case "authority":
+      window.location.href = "authority_dashboard.html";
+      break;
+
+    case "conductor":
+      window.location.href = "dashboard.html";
+      break;
+
+    default:
+      localStorage.clear();
+      window.location.href = "login.html";
+  }
+}
+
+function goLogin() {
+  window.location.href = "login.html";
+}
+
+</script>
+
+<script src="js/page-protection.js"></script>
+<script>
+  // Redirect logged-in users to their dashboard
+  protectPublicPage();
+</script>
+
+</body>
 </html>

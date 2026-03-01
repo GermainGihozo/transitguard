@@ -1,0 +1,50 @@
+{
+  "name": "transitguard",
+  "version": "1.0.0",
+  "description": "Smart Biometric Passenger Tracking System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "create-user": "node backend/scripts/createTestUser.js",
+    "migrate": "node backend/scripts/runMigration.js",
+    "seed-stations": "node backend/scripts/seedStations.js",
+    "test-connection": "node test-connection.js",
+    "test-users": "node test-user-management.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GermainGihozo/transitguard.git"
+  },
+  "keywords": [
+    "transit",
+    "biometric",
+    "tracking",
+    "passenger",
+    "management"
+  ],
+  "author": "Germain Gihozo",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/GermainGihozo/transitguard/issues"
+  },
+  "homepage": "https://github.com/GermainGihozo/transitguard#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.17.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TransitGuard - Conductor Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/dashboard-common.css">
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h4><i class="bi bi-person-badge"></i> TransitGuard</h4>
+      <p class="text-muted small mb-0">Conductor</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="overview"><i class="bi bi-speedometer2"></i> Overview</a>
+      <a href="#" class="nav-item" data-section="scan"><i class="bi bi-qr-code-scan"></i> Scan Boarding</a>
+      <a href="#" class="nav-item" data-section="current-trip"><i class="bi bi-bus-front"></i> Current Trip</a>
+      <a href="#" class="nav-item" data-section="passengers"><i class="bi bi-people"></i> Passengers</a>
+      <a href="#" class="nav-item" data-section="history"><i class="bi bi-clock-history"></i> History</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <i class="bi bi-person-circle"></i>
+        <div>
+          <div class="user-name" id="userName">Loading...</div>
+          <small class="text-muted">Conductor</small>
+        </div>
+      </div>
+      <button onclick="logout()" class="btn btn-danger btn-sm w-100 mt-2">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="btn btn-link text-white" id="sidebarToggle"><i class="bi bi-list fs-4"></i></button>
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-success" onclick="showSection('scan')">
+          <i class="bi bi-qr-code-scan"></i> Start Scanning
+        </button>
+        <button class="btn btn-outline-light btn-sm" onclick="loadDashboardData()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="content-wrapper">
+      <section id="section-overview" class="content-section active">
+        <div class="section-header">
+          <h2><i class="bi bi-speedometer2"></i> My Dashboard</h2>
+          <p class="text-muted">Today's boarding activity</p>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary"><i class="bi bi-qr-code-scan"></i></div>
+              <div class="stat-details">
+                <div class="stat-label">Today's Scans</div>
+                <div class="stat-value" id="todayScans">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-success"><i class="bi bi-check-circle"></i></div>
+              <div class="stat-details">
+                <div class="stat-label">Approved</div>
+                <div class="stat-value" id="approvedScans">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon bg-danger"><i class="bi bi-x-circle"></i></div>
+              <div class="stat-details">
+                <div class="stat-label">Denied</div>
+                <div class="stat-value" id="deniedScans">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-bus-front"></i> Current Trip Status</h5>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle"></i> No active trip assigned
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-clock-history"></i> Recent Scans</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr><th>Time</th><th>Passenger</th><th>Seat</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="recentActivity">
+                  <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-scan" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-qr-code-scan"></i> Scan Boarding</h2>
+          <button class="btn btn-outline-primary" onclick="loadActiveTripsForScan()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh Trips
+          </button>
+        </div>
+
+        <!-- Trip Selection -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-bus-front"></i> Select Active Trip</h5>
+          </div>
+          <div class="card-body">
+            <select class="form-select form-select-lg" id="scanTripSelect">
+              <option value="">Loading trips...</option>
+            </select>
+            <div id="selectedTripInfo" class="mt-3 d-none"></div>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <!-- Scanner Column -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5><i class="bi bi-fingerprint"></i> Biometric Scanner</h5>
+              </div>
+              <div class="card-body">
+                <div class="text-center mb-4" id="scannerStatus">
+                  <i class="bi bi-fingerprint" style="font-size: 5rem; color: #6c757d;"></i>
+                  <p class="text-muted mt-3">Ready to scan</p>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Fingerprint Template</label>
+                  <textarea class="form-control" id="fingerprintInput" rows="3" 
+                            placeholder="Enter or paste fingerprint template..."></textarea>
+                </div>
+                
+                <div class="d-grid gap-2">
+                  <button class="btn btn-primary btn-lg" id="scanButton" onclick="scanFingerprint()">
+                    <i class="bi bi-fingerprint"></i> Scan & Verify
+                  </button>
+                  <button class="btn btn-outline-secondary" onclick="clearScan()">
+                    <i class="bi bi-x-circle"></i> Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Result Column -->
+          <div class="col-lg-6">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5><i class="bi bi-clipboard-check"></i> Scan Result</h5>
+              </div>
+              <div class="card-body">
+                <div class="text-center py-5" id="scanResult">
+                  <i class="bi bi-qr-code-scan" style="font-size: 3rem; color: #6c757d;"></i>
+                  <p class="text-muted mt-3">Scan a passenger to see details</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Scans -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <h5><i class="bi bi-clock-history"></i> Recent Boardings</h5>
+          </div>
+          <div class="card-body">
+            <div id="recentScans">
+              <p class="text-muted text-center">No recent scans</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-current-trip" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-bus-front"></i> Current Trip</h2>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div class="text-center py-4">
+              <div class="spinner-border"></div>
+              <p class="text-muted mt-2">Loading trip details...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-passengers" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-people"></i> Passengers</h2>
+        </div>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Passenger list coming soon...
+        </div>
+      </section>
+
+      <section id="section-history" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-clock-history"></i> Boarding History</h2>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div class="text-center py-4">
+              <div class="spinner-border"></div>
+              <p class="text-muted mt-2">Loading history...</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="js/page-protection.js"></script>
+  <script>
+    // Protect this page - only Conductors can access
+    protectPage('conductor');
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/dashboard-common.js"></script>
+  <script src="js/conductor.js"></script>
+</body>
+</html>

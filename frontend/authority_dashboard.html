@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TransitGuard - Authority Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="css/dashboard-common.css">
+</head>
+<body>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <h4><i class="bi bi-shield-check"></i> TransitGuard</h4>
+      <p class="text-muted small mb-0">Authority</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="overview"><i class="bi bi-speedometer2"></i> Overview</a>
+      <a href="#" class="nav-item" data-section="monitoring"><i class="bi bi-eye"></i> Live Monitoring</a>
+      <a href="#" class="nav-item" data-section="trips"><i class="bi bi-bus-front"></i> All Trips</a>
+      <a href="#" class="nav-item" data-section="passengers"><i class="bi bi-person-badge"></i> Passengers</a>
+      <a href="#" class="nav-item" data-section="reports"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a>
+      <a href="#" class="nav-item" data-section="compliance"><i class="bi bi-clipboard-check"></i> Compliance</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <i class="bi bi-person-circle"></i>
+        <div>
+          <div class="user-name" id="userName">Loading...</div>
+          <small class="text-muted">Authority Officer</small>
+        </div>
+      </div>
+      <button onclick="logout()" class="btn btn-danger btn-sm w-100 mt-2">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="btn btn-link text-white" id="sidebarToggle"><i class="bi bi-list fs-4"></i></button>
+      <div class="d-flex align-items-center gap-3">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search..." id="globalSearch">
+        </div>
+        <button class="btn btn-outline-light btn-sm" onclick="loadDashboardData()">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="content-wrapper">
+      <section id="section-overview" class="content-section active">
+        <div class="section-header">
+          <h2><i class="bi bi-speedometer2"></i> System Overview</h2>
+          <p class="text-muted">Monitor transit system compliance and activity</p>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary"><i class="bi bi-activity"></i></div>
+              <div class="stat-details">
+                <div class="stat-label">Today's Activity</div>
+                <div class="stat-value" id="todayScans">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-success"><i class="bi bi-check-circle"></i></div>
+              <div class="stat-details">
+                <div class="stat-label">Approved</div>
+                <div class="stat-value" id="approvedScans">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-danger"><i class="bi bi-exclamation-triangle"></i></div>
+              <div class="stat-details">
+                <div class="stat-label">Denied</div>
+                <div class="stat-value" id="deniedScans">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning"><i class="bi bi-bus-front"></i></div>
+              <div class="stat-details">
+                <div class="stat-label">Active Trips</div>
+                <div class="stat-value" id="activeTrips">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-bus-front"></i> Active Trips</h5>
+          </div>
+          <div class="card-body">
+            <div id="activeTripsContainer" class="row g-3">
+              <div class="col-12 text-center text-muted py-4">Loading...</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-clock-history"></i> Recent Activity</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr><th>Time</th><th>Passenger</th><th>Seat</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="recentActivity">
+                  <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="section-monitoring" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-eye"></i> Live Monitoring</h2>
+        </div>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Live monitoring interface coming soon...
+        </div>
+      </section>
+
+      <section id="section-trips" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-bus-front"></i> All Trips</h2>
+        </div>
+      </section>
+
+      <section id="section-passengers" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-person-badge"></i> Passengers</h2>
+        </div>
+      </section>
+
+      <section id="section-reports" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-file-earmark-bar-graph"></i> Reports</h2>
+        </div>
+      </section>
+
+      <section id="section-compliance" class="content-section">
+        <div class="section-header">
+          <h2><i class="bi bi-clipboard-check"></i> Compliance</h2>
+        </div>
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle"></i> Compliance monitoring coming soon...
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="js/page-protection.js"></script>
+  <script>
+    // Protect this page - only Authority can access
+    protectPage('authority');
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/dashboard-common.js"></script>
+  <script src="js/authority.js"></script>
+</body>
+</html>

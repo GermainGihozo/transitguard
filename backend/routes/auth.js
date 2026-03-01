@@ -2,173 +2,195 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
+const { validate } = require("../middleware/validator");
+const { authLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
-/* ================= REGISTER ================= */
-// router.post("/register", async (req, res) => {
-//   const { full_name, email, password, role } = req.body;
+/* ================= REGISTER (Disabled - Use /users/create instead) ================= */
+// This endpoint is kept for backward compatibility but should not be used
+// Use POST /api/users/create with proper authentication instead
+router.post(
+  "/register",
+  authLimiter,
+  validate({
+    full_name: { required: true, minLength: 2, maxLength: 100 },
+    email: { required: true, type: "email" },
+    password: { required: true, type: "password" },
+    fingerprint_template: { required: true, minLength: 10 }
+  }),
+  async (req, res, next) => {
+    // Disable public registration
+    return res.status(403).json({ 
+      message: "Public registration is disabled. Please contact your administrator.",
+      info: "Super admins create company admins, company admins create other users"
+    });
 
-//   try {
-//     const hashedPassword = await bcrypt.hash(password, 10);
+    /* Original registration code kept for reference
+    const { full_name, email, password, fingerprint_template } = req.body;
+    const role = req.body.role || "conductor";
 
-//     const sql =
-//       "INSERT INTO users (full_name, email, password_hash, role) VALUES (?, ?, ?, ?)";
+    try {
+      const [existing] = await db.execute(
+        "SELECT id FROM users WHERE email = ?",
+        [email]
+      );
 
-//     db.query(sql, [full_name, email, hashedPassword, role], (err, result) => {
-//       if (err) return res.status(500).json(err);
-
-//       res.json({ message: "User registered successfully" });
-//     });
-//   } catch (error) {
-//     res.status(500).json(error);
-//   }
-// });
-
-// router.post("/register", async (req, res) => {
-//   const { full_name, email, password, role, fingerprint_template } = req.body;
-
-//   try {
-//     const hashedPassword = await bcrypt.hash(password, 10);
-
-//     const sql = `
-//       INSERT INTO users 
-//       (full_name, email, password_hash, fingerprint_template, role) 
-//       VALUES (?, ?, ?, ?, ?)
-//     `;
-
-//     db.query(
-//       sql,
-//       [full_name, email, hashedPassword, fingerprint_template, role],
-//       (err, result) => {
-//         if (err) return res.status(500).json(err);
-
-//         res.json({ message: "User registered with biometric successfully" });
-//       }
-//     );
-//   } catch (error) {
-//     res.status(500).json(error);
-//   }
-// });
-
-
-router.post("/register", async (req, res) => {
-  const { full_name, email, password, fingerprint_template } = req.body;
-
-  const role = "conductor"; // default role
-
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const sql = `
-      INSERT INTO users 
-      (full_name, email, password_hash, fingerprint_template, role) 
-      VALUES (?, ?, ?, ?, ?)
-    `;
-
-    db.query(
-      sql,
-      [full_name, email, hashedPassword, fingerprint_template, role],
-      (err, result) => {
-        if (err) {
-          console.log(err); // 🔥 IMPORTANT for debugging
-          return res.status(500).json({ message: "Database error", error: err });
-        }
-
-        res.json({ message: "User registered successfully" });
+      if (existing.length > 0) {
+        return res.status(409).json({ message: "Email already registered" });
       }
-    );
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: "Server error" });
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const sql = `
+        INSERT INTO users 
+        (full_name, email, password_hash, fingerprint_template, role) 
+        VALUES (?, ?, ?, ?, ?)
+      `;
+
+      await db.execute(sql, [
+        full_name,
+        email,
+        hashedPassword,
+        fingerprint_template,
+        role
+      ]);
+
+      res.status(201).json({ message: "User registered successfully" });
+    } catch (error) {
+      next(error);
+    }
+    */
   }
-});
-
-
+);
 
 /* ================= LOGIN ================= */
-router.post("/login", (req, res) => {
-  const { email, password } = req.body;
+router.post(
+  "/login",
+  authLimiter,
+  validate({
+    email: { required: true, type: "email" },
+    password: { required: true }
+  }),
+  async (req, res, next) => {
+    const { email, password } = req.body;
 
-  const sql = "SELECT * FROM users WHERE email = ?";
-  db.query(sql, [email], async (err, results) => {
-    if (err) return res.status(500).json(err);
+    try {
+      const [results] = await db.execute(
+        "SELECT * FROM users WHERE email = ?",
+        [email]
+      );
 
-    if (results.length === 0)
-      return res.status(400).json({ message: "User not found" });
+      if (results.length === 0) {
+        return res.status(401).json({ 
+          success: false,
+          message: "Invalid email or password. Please check your credentials and try again." 
+        });
+      }
 
-    const user = results[0];
+      const user = results[0];
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid credentials" });
+      if (!user.is_active) {
+        return res.status(403).json({ 
+          success: false,
+          message: "Your account has been deactivated. Please contact your administrator." 
+        });
+      }
 
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+      const isMatch = await bcrypt.compare(password, user.password_hash);
+      if (!isMatch) {
+        return res.status(401).json({ 
+          success: false,
+          message: "Invalid email or password. Please check your credentials and try again." 
+        });
+      }
 
-    res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        role: user.role,
-      },
-    });
-  });
-});
+      const token = jwt.sign(
+        { id: user.id, role: user.role, station_id: user.station_id },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
 
-module.exports = router;
+      res.json({
+        success: true,
+        message: "Login successful",
+        token,
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          role: user.role,
+          station_id: user.station_id
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 /* ================= BIOMETRIC LOGIN ================= */
-router.post("/biometric-login", (req, res) => {
-  const { email, fingerprint_template } = req.body;
+router.post(
+  "/biometric-login",
+  authLimiter,
+  validate({
+    email: { required: true, type: "email" },
+    fingerprint_template: { required: true, minLength: 10 }
+  }),
+  async (req, res, next) => {
+    const { email, fingerprint_template } = req.body;
 
-  if (!email || !fingerprint_template) {
-    return res.status(400).json({ message: "Email and fingerprint required" });
-  }
+    try {
+      const [results] = await db.execute(
+        "SELECT * FROM users WHERE email = ?",
+        [email]
+      );
 
-  const { encrypt } = require("../utils/encryption");
-
-  const encryptedIncoming = encrypt(fingerprint_template);
-
-  const sql = "SELECT * FROM users WHERE email = ?";
-  db.query(sql, [email], (err, results) => {
-    if (err) return res.status(500).json(err);
-
-    if (results.length === 0) {
-      return res.status(400).json({ message: "User not found" });
-    }
-
-    const user = results[0];
-
-    // if (user.fingerprint_template !== encryptedIncoming) {
-    //   return res.status(401).json({ message: "Fingerprint mismatch" });
-    // }
-
-if (user.fingerprint_template !== fingerprint_template) {
-  return res.status(401).json({ message: "Fingerprint mismatch" });
-}
-
-
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    res.json({
-      message: "Biometric login successful",
-      token,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        role: user.role
+      if (results.length === 0) {
+        return res.status(401).json({ 
+          success: false,
+          message: "Invalid email or fingerprint. Please check your credentials and try again." 
+        });
       }
-    });
-  });
-});
+
+      const user = results[0];
+
+      if (!user.is_active) {
+        return res.status(403).json({ 
+          success: false,
+          message: "Your account has been deactivated. Please contact your administrator." 
+        });
+      }
+
+      // Compare fingerprint templates
+      // TODO: Replace with actual biometric matching algorithm
+      if (user.fingerprint_template !== fingerprint_template) {
+        return res.status(401).json({ 
+          success: false,
+          message: "Biometric verification failed. Fingerprint does not match." 
+        });
+      }
+
+      const token = jwt.sign(
+        { id: user.id, role: user.role, station_id: user.station_id },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      res.json({
+        success: true,
+        message: "Biometric login successful",
+        token,
+        user: {
+          id: user.id,
+          full_name: user.full_name,
+          role: user.role,
+          station_id: user.station_id
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 module.exports = router;

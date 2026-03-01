@@ -1,18 +1,40 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db'); // your mysql connection
+const db = require('../config/db');
+const { validate } = require('../middleware/validator');
 
 // Register passenger + assign ticket
-router.post('/register', async (req, res) => {
+router.post('/register', 
+  validate({
+    full_name: { required: true, minLength: 2, maxLength: 100 },
+    fingerprint: { required: true, minLength: 10 },
+    national_id: { type: "nationalId" },
+    phone: { type: "phone" }
+  }),
+  async (req, res) => {
     try {
         const { full_name, national_id, passport_number, phone, fingerprint } = req.body;
+
+        // Check for duplicate national_id if provided
+        if (national_id) {
+          const [existing] = await db.execute(
+            "SELECT id FROM passengers WHERE national_id = ?",
+            [national_id]
+          );
+          if (existing.length > 0) {
+            return res.status(409).json({ 
+              message: "National ID already registered",
+              errors: ["This National ID is already in the system"]
+            });
+          }
+        }
 
         // Insert passenger
         const [result] = await db.execute(
             `INSERT INTO passengers 
             (full_name, national_id, passport_number, phone, fingerprint_template)
             VALUES (?, ?, ?, ?, ?)`,
-            [full_name, national_id, passport_number, phone, fingerprint]
+            [full_name, national_id || null, passport_number || null, phone || null, fingerprint]
         );
 
         const passenger_id = result.insertId;
@@ -28,13 +50,17 @@ router.post('/register', async (req, res) => {
         );
 
         res.json({
-            message: "Passenger registered and ticket assigned",
-            passenger_id
+            message: "✓ Passenger registered and ticket assigned successfully!",
+            passenger_id,
+            seat_number
         });
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Registration failed" });
+        res.status(500).json({ 
+          message: "Registration failed",
+          errors: ["An error occurred while processing your request. Please try again."]
+        });
     }
 });
 

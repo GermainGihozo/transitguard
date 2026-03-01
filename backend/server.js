@@ -1,28 +1,47 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+
+// Validate environment variables on startup
+const validateEnv = require("./utils/validateEnv");
+validateEnv();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting
+const { apiLimiter } = require("./middleware/rateLimiter");
+app.use("/api", apiLimiter);
+
+// Initialize database connection pool
 require("./config/db");
 
-const authRoutes = require("./routes/auth");
-app.use("/api/auth", authRoutes);
-
+// Health check
 app.get("/", (req, res) => {
-  res.send("TransitGuard API Running...");
+  res.json({
+    service: "TransitGuard API",
+    status: "running",
+    version: "1.0.0",
+    timestamp: new Date().toISOString()
+  });
 });
-const passengerRoutes = require("./routes/passengerRoutes");
-app.use("/api/passengers", passengerRoutes);
 
-const boardingRoutes = require("./routes/boardingRoutes");
-app.use("/api/boarding", boardingRoutes);
+// API Routes
+const apiRoutes = require("./routes/routes");
+app.use("/api", apiRoutes);
+console.log("✓ API routes mounted at /api");
 
-app.use("/api/dashboard", require("./routes/dashboard"));
+// Error handling middleware (must be last)
+const errorHandler = require("./middleware/errorHandler");
+app.use(errorHandler);
 
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`✓ Server running on port ${PORT}`);
 });
 
