@@ -1,33 +1,30 @@
-services:
-  # Full-Stack Web Service (Backend + Frontend)
-  - type: web
-    name: transitguard
-    env: node
-    region: oregon
-    plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
+# Exported from Render on 2026-03-01T18:43:29Z
+version: "1"
+projects:
+- name: My project
+  environments:
+  - name: Production
+    services:
+    - type: web
+      name: transitguard
+      runtime: node
+      repo: https://github.com/GermainGihozo/transitguard
+      plan: free
+      envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: transitguard-db
-          property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
-      - key: BIOMETRIC_SECRET
-        generateValue: true
+        sync: false
       - key: RATE_LIMIT_MAX
-        value: 100
-    healthCheckPath: /
-
-databases:
-  # PostgreSQL Database (Render free tier - included!)
-  - name: transitguard-db
-    databaseName: transitguard_prod
-    user: transitguard_user
-    plan: free
-    postgresMajorVersion: 16
+        sync: false
+      - key: BIOMETRIC_SECRET
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        sync: false
+      - key: NODE_ENV
+        sync: false
+      region: oregon
+      buildCommand: npm install && npm run build
+      startCommand: npm start
+      healthCheckPath: /
+      autoDeployTrigger: commit
