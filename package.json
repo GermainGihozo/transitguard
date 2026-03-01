@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
+    "build": "cd frontend && npm install && npm run build",
+    "deploy": "npm install && npm run build && npm start",
+    "generate-secrets": "node generate-secrets.js",
     "create-user": "node backend/scripts/createTestUser.js",
     "migrate": "node backend/scripts/runMigration.js",
     "seed-stations": "node backend/scripts/seedStations.js",

@@ -125,3 +125,14 @@ Thumbs.db
 # Database
 *.sqlite
 *.db
+
+# Docker
+docker-compose.override.yml
+
+# Build output
+frontend/dist/
+frontend/build/
+
+# Deployment
+.vercel
+.railway

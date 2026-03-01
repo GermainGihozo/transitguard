@@ -36,6 +36,18 @@ const apiRoutes = require("./routes/routes");
 app.use("/api", apiRoutes);
 console.log("✓ API routes mounted at /api");
 
+// Serve frontend in production
+if (process.env.NODE_ENV === "production") {
+  const frontendPath = path.join(__dirname, "../frontend/dist");
+  app.use(express.static(frontendPath));
+  
+  // Handle client-side routing
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, "index.html"));
+  });
+  console.log("✓ Serving frontend from", frontendPath);
+}
+
 // Error handling middleware (must be last)
 const errorHandler = require("./middleware/errorHandler");
 app.use(errorHandler);
