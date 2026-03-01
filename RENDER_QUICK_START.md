@@ -1,16 +1,31 @@
-# 🚀 Render Quick Start - 10 Minutes to Deploy
+# 🚀 Render Quick Start - 5 Minutes to Deploy (PostgreSQL)
 
-Deploy TransitGuard to Render in 10 minutes or less!
+Deploy TransitGuard to Render in 5 minutes with FREE PostgreSQL included!
 
 ## 🎯 Prerequisites
 
 - GitHub account
 - Your code pushed to GitHub
-- 10 minutes of your time
+- 5 minutes of your time
+
+## 🎉 Why This is Easy
+
+Render's free tier includes PostgreSQL - no external database needed!
 
 ## 📝 Step-by-Step Guide
 
-### Step 1: Generate Secrets (2 minutes)
+### Step 1: Migrate to PostgreSQL (1 minute)
+
+```bash
+# Automated migration
+npm run migrate-to-postgres
+
+# Or manual: See POSTGRES_MIGRATION.md
+```
+
+This updates your code to use PostgreSQL instead of MySQL.
+
+### Step 2: Generate Secrets (1 minute)
 
 ```bash
 npm run generate-secrets
@@ -20,144 +35,99 @@ Copy and save:
 - JWT_SECRET
 - BIOMETRIC_SECRET
 
-### Step 2: Push to GitHub (1 minute)
+### Step 3: Push to GitHub (1 minute)
 
 ```bash
 git add .
-git commit -m "Ready for Render"
+git commit -m "Ready for Render with PostgreSQL"
 git push origin main
 ```
 
-### Step 3: Create Render Account (1 minute)
+### Step 4: Create Render Account (1 minute)
 
 1. Go to [render.com](https://render.com)
 2. Click "Get Started"
 3. Sign up with GitHub
 
-### Step 4: Deploy Web Service (3 minutes)
+### Step 5: Deploy with Blueprint (1 minute)
 
-1. **Click "New +"** → Select "Web Service"
+Render can auto-configure everything using `render.yaml`:
+
+1. **Click "New +"** → Select "Blueprint"
 
 2. **Connect Repository**
-   - Click "Connect account" (if first time)
    - Find and select your `transitguard` repository
    - Click "Connect"
 
-3. **Configure Service**
-   ```
-   Name: transitguard
-   Region: Oregon (or closest to you)
-   Branch: main
-   Root Directory: (leave blank)
-   Runtime: Node
-   Build Command: npm install && npm run build
-   Start Command: npm start
-   Instance Type: Free
-   ```
+3. **Render Reads render.yaml**
+   - Automatically creates:
+     - Web Service (your app)
+     - PostgreSQL Database (free!)
+     - Environment variables
+   - Click "Apply"
 
-4. **Add Environment Variables**
+4. **That's it!** Render deploys everything automatically.
+
+### Alternative: Manual Setup (if not using Blueprint)
+
+If you prefer manual setup:
+
+1. **Create PostgreSQL Database First**
+   - Click "New +" → "PostgreSQL"
+   - Name: `transitguard-db`
+   - Database: `transitguard_prod`
+   - Plan: Free
+   - Click "Create Database"
+
+2. **Create Web Service**
+   - Click "New +" → "Web Service"
+   - Connect your repository
+   - Configure:
+     ```
+     Name: transitguard
+     Region: Oregon
+     Branch: main
+     Runtime: Node
+     Build Command: npm install && npm run build
+     Start Command: npm start
+     Instance Type: Free
+     ```
+
+3. **Add Environment Variables**
    
-   Click "Advanced" → Scroll to "Environment Variables"
-   
-   Add these one by one:
+   Click "Advanced" → Add these:
    
    | Key | Value |
    |-----|-------|
    | NODE_ENV | production |
    | PORT | 10000 |
-   | DB_HOST | (see Step 5) |
-   | DB_USER | (see Step 5) |
-   | DB_PASSWORD | (see Step 5) |
-   | DB_NAME | transitguard_prod |
-   | JWT_SECRET | (paste from Step 1) |
-   | BIOMETRIC_SECRET | (paste from Step 1) |
+   | DATABASE_URL | (Select "From Database" → transitguard-db) |
+   | JWT_SECRET | (paste from Step 2) |
+   | BIOMETRIC_SECRET | (paste from Step 2) |
    | RATE_LIMIT_MAX | 100 |
 
-5. **Don't click "Create Web Service" yet!** 
-   We need to set up the database first.
+4. **Create Web Service**
 
-### Step 5: Set Up Database (3 minutes)
-
-You need a MySQL database. Choose one option:
-
-#### Option A: PlanetScale (Recommended - Free Forever)
-
-1. Go to [planetscale.com](https://planetscale.com)
-2. Sign up (free)
-3. Create new database: `transitguard`
-4. Click "Connect" → Get credentials
-5. Copy these values back to Render environment variables:
-   - DB_HOST
-   - DB_USER
-   - DB_PASSWORD
-   - DB_NAME
-
-#### Option B: Railway MySQL (Free Tier)
-
-1. Go to [railway.app](https://railway.app)
-2. New Project → Add MySQL
-3. Click MySQL → Variables tab
-4. Copy these values to Render:
-   - MYSQLHOST → DB_HOST
-   - MYSQLUSER → DB_USER
-   - MYSQLPASSWORD → DB_PASSWORD
-   - MYSQLDATABASE → DB_NAME
-
-#### Option C: Aiven MySQL (Free Trial)
-
-1. Go to [aiven.io](https://aiven.io)
-2. Sign up for free trial
-3. Create MySQL service
-4. Get connection details
-5. Copy to Render environment variables
-
-### Step 6: Create Web Service (1 minute)
-
-Now that database is ready:
-1. Go back to Render
-2. Verify all environment variables are set
-3. Click "Create Web Service"
-4. Wait 5-10 minutes for first deploy
-
-### Step 7: Import Database Schema (2 minutes)
+### Step 6: Import Database Schema (1 minute)
 
 Once deployed, import your schema:
 
-**If using PlanetScale:**
-```bash
-# Install PlanetScale CLI
-brew install planetscale/tap/pscale  # Mac
-# or download from planetscale.com
+**Option A: Using Render Shell**
+1. Go to your database in Render dashboard
+2. Click "Connect" → "External Connection"
+3. Copy the PSQL command
+4. Run locally:
+   ```bash
+   psql <connection-string> < backend/database/schema-postgres.sql
+   ```
 
-# Connect to database
-pscale shell transitguard main
+**Option B: Using Render Dashboard**
+1. Go to your database
+2. Click "Connect" → "PSQL Command"
+3. Copy and run in your terminal
+4. Then paste contents of `schema-postgres.sql`
 
-# Paste contents of backend/database/schema.sql
-# Then paste contents of backend/database/seed.sql
-```
-
-**If using Railway:**
-```bash
-# Install Railway CLI
-npm i -g @railway/cli
-
-# Login and connect
-railway login
-railway link
-
-# Import schema
-railway run mysql < backend/database/schema.sql
-railway run mysql < backend/database/seed.sql
-```
-
-**If using Aiven or other:**
-```bash
-# Use standard MySQL client
-mysql -h <host> -u <user> -p < backend/database/schema.sql
-mysql -h <host> -u <user> -p < backend/database/seed.sql
-```
-
-### Step 8: Test Your Deployment (1 minute)
+### Step 7: Test Your Deployment (1 minute)
 
 Your app is at: `https://transitguard.onrender.com` (or your chosen name)
 

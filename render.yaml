@@ -25,8 +25,9 @@ services:
     healthCheckPath: /
 
 databases:
-  # PostgreSQL Database (Render free tier)
+  # PostgreSQL Database (Render free tier - included!)
   - name: transitguard-db
     databaseName: transitguard_prod
     user: transitguard_user
     plan: free
+    postgresMajorVersion: 16

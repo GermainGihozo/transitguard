@@ -9,6 +9,7 @@
     "build": "cd frontend && npm install && npm run build",
     "deploy": "npm install && npm run build && npm start",
     "generate-secrets": "node generate-secrets.js",
+    "migrate-to-postgres": "node migrate-to-postgres.js",
     "create-user": "node backend/scripts/createTestUser.js",
     "migrate": "node backend/scripts/runMigration.js",
     "seed-stations": "node backend/scripts/seedStations.js",
@@ -41,7 +42,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.17.1"
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
