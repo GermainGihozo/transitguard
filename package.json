@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js",
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd frontend && npm install --include=dev && npm run build",
     "deploy": "npm install && npm run build && npm start",
     "generate-secrets": "node generate-secrets.js",
     "migrate-to-postgres": "node migrate-to-postgres.js",
