@@ -19,14 +19,16 @@ router.get(
           v.plate_number,
           v.capacity,
           v.company_name,
-          COUNT(bl.id) AS onboard
+          r.route_name,
+          COUNT(DISTINCT bh.id) AS onboard
         FROM trips t
         JOIN vehicles v ON t.vehicle_id = v.id
-        LEFT JOIN boarding_logs bl 
-          ON bl.trip_id = t.id 
-          AND bl.verification_status = 'verified'
+        LEFT JOIN routes r ON t.route_id = r.id
+        LEFT JOIN boarding_history bh 
+          ON bh.trip_id = t.id 
+          AND bh.status = 'approved'
         WHERE t.status IN ('scheduled','departed')
-        GROUP BY t.id
+        GROUP BY t.id, t.status, t.departure_time, v.plate_number, v.capacity, v.company_name, r.route_name
         ORDER BY t.departure_time ASC
       `);
 

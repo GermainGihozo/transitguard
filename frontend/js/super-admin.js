@@ -104,6 +104,8 @@ async function loadOverviewData() {
       
       // Update recent activity table
       updateRecentActivity(records);
+    } else {
+      console.error('Failed to load dashboard stats:', dashboardRes);
     }
     
     // Load active trips
@@ -112,6 +114,9 @@ async function loadOverviewData() {
       const trips = tripsRes.data;
       document.getElementById('activeTrips').textContent = trips.length;
       updateActiveTrips(trips);
+    } else {
+      console.error('Failed to load active trips:', tripsRes);
+      updateActiveTrips([]);
     }
     
     // Load users count
@@ -166,7 +171,7 @@ function updateActiveTrips(trips) {
   const container = document.getElementById('activeTripsContainer');
   
   if (!trips || trips.length === 0) {
-    container.innerHTML = '<div class="col-12 text-center text-muted py-4">No active trips</div>';
+    container.innerHTML = '<div class="col-12 text-center text-muted py-4"><i class="bi bi-bus-front fs-1 d-block mb-2"></i>No active trips at the moment</div>';
     return;
   }
   
@@ -181,9 +186,10 @@ function updateActiveTrips(trips) {
             </span>
           </div>
           <p class="text-muted small mb-2">${trip.company_name}</p>
+          ${trip.route_name ? `<p class="text-muted small mb-2"><i class="bi bi-signpost"></i> ${trip.route_name}</p>` : ''}
           <div class="d-flex justify-content-between text-sm">
             <span><i class="bi bi-clock"></i> ${formatDateTime(trip.departure_time)}</span>
-            <span><i class="bi bi-people"></i> ${trip.onboard}/${trip.capacity}</span>
+            <span><i class="bi bi-people"></i> ${trip.onboard || 0}/${trip.capacity}</span>
           </div>
         </div>
       </div>
