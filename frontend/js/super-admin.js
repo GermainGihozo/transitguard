@@ -75,6 +75,9 @@ function showSection(sectionName) {
       case 'trips':
         loadAllTrips();
         break;
+      case 'passengers':
+        loadPassengers();
+        break;
     }
   }
 }
@@ -860,4 +863,309 @@ function showSystemTripDetailsModal(trip) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   const modal = new bootstrap.Modal(document.getElementById('systemTripDetailsModal'));
   modal.show();
+}
+
+
+// ==================== PASSENGER MANAGEMENT ====================
+
+let currentPassengerPage = 1;
+
+async function loadPassengers(page = 1) {
+  currentPassengerPage = page;
+  const search = document.getElementById('searchPassengers')?.value || '';
+  const period = document.getElementById('filterPassengerPeriod')?.value || '';
+  
+  try {
+    let url = `/passengers?page=${page}&limit=20`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (period) url += `&period=${period}`;
+    
+    const res = await API.get(url);
+    
+    if (res.ok) {
+      const { passengers, pagination, stats } = res.data;
+      updatePassengersTable(passengers);
+      updatePassengersPagination(pagination);
+      updatePassengerStats(stats);
+    } else {
+      showError('Failed to load passengers');
+    }
+  } catch (error) {
+    console.error('Error loading passengers:', error);
+    showError('Error loading passengers');
+  }
+}
+
+function updatePassengersTable(passengers) {
+  const tbody = document.getElementById('passengersTableBody');
+  
+  if (!passengers || passengers.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No passengers found</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = passengers.map(passenger => `
+    <tr>
+      <td>#${passenger.id}</td>
+      <td>${passenger.full_name}</td>
+      <td>${passenger.national_id || '-'}</td>
+      <td>${passenger.phone || '-'}</td>
+      <td><span class="badge bg-info">${passenger.ticket_count || 0}</span></td>
+      <td>${passenger.last_boarding ? formatDateTime(passenger.last_boarding) : 'Never'}</td>
+      <td>${formatDate(passenger.created_at)}</td>
+      <td>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-primary" onclick="viewPassengerDetails(${passenger.id})" title="View Details">
+            <i class="bi bi-eye"></i>
+          </button>
+          <button class="btn btn-outline-success" onclick="assignTicket(${passenger.id})" title="Assign Ticket">
+            <i class="bi bi-ticket"></i>
+          </button>
+          <button class="btn btn-outline-danger" onclick="deletePassenger(${passenger.id}, '${passenger.full_name}')" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function updatePassengersPagination(pagination) {
+  const container = document.getElementById('passengersPagination');
+  if (!container) return;
+  
+  const { page, pages, total } = pagination;
+  
+  let html = `<div class="text-muted">Showing page ${page} of ${pages} (${total} total passengers)</div>`;
+  
+  if (pages > 1) {
+    html += '<div class="btn-group">';
+    
+    if (page > 1) {
+      html += `<button class="btn btn-sm btn-outline-primary" onclick="loadPassengers(${page - 1})">Previous</button>`;
+    }
+    
+    for (let i = Math.max(1, page - 2); i <= Math.min(pages, page + 2); i++) {
+      html += `<button class="btn btn-sm btn-${i === page ? 'primary' : 'outline-primary'}" onclick="loadPassengers(${i})">${i}</button>`;
+    }
+    
+    if (page < pages) {
+      html += `<button class="btn btn-sm btn-outline-primary" onclick="loadPassengers(${page + 1})">Next</button>`;
+    }
+    
+    html += '</div>';
+  }
+  
+  container.innerHTML = html;
+}
+
+function updatePassengerStats(stats) {
+  if (!stats) return;
+  
+  document.getElementById('totalPassengersCount').textContent = stats.total || 0;
+  document.getElementById('activeTicketsCount').textContent = stats.active_tickets || 0;
+  document.getElementById('todayBoardingsCount').textContent = stats.today_boardings || 0;
+  document.getElementById('newPassengersCount').textContent = stats.new_this_week || 0;
+}
+
+function filterPassengers() {
+  loadPassengers(1);
+}
+
+// Register Passenger
+function showRegisterPassengerModal() {
+  const modal = new bootstrap.Modal(document.getElementById('registerPassengerModal'));
+  document.getElementById('registerPassengerForm').reset();
+  document.getElementById('registerPassengerError').classList.add('d-none');
+  document.getElementById('randomPassengerFp').textContent = Math.random().toString(36).substring(7);
+  modal.show();
+}
+
+async function registerPassenger() {
+  const form = document.getElementById('registerPassengerForm');
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData);
+  const errorDiv = document.getElementById('registerPassengerError');
+  
+  errorDiv.classList.add('d-none');
+  
+  // Client-side validation
+  const errors = [];
+  
+  if (!data.full_name || data.full_name.trim().length < 2) {
+    errors.push('Full name must be at least 2 characters');
+  }
+  
+  if (!data.fingerprint || data.fingerprint.length < 10) {
+    errors.push('Fingerprint template must be at least 10 characters');
+  }
+  
+  if (data.national_id && data.national_id.length !== 16) {
+    errors.push('National ID must be exactly 16 digits');
+  }
+  
+  if (data.phone && !data.phone.match(/^\+?[0-9]{10,15}$/)) {
+    errors.push('Phone number must be 10-15 digits');
+  }
+  
+  if (errors.length > 0) {
+    errorDiv.innerHTML = '<strong>Please fix the following:</strong><ul class="mb-0 mt-2">' + 
+      errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+    errorDiv.classList.remove('d-none');
+    return;
+  }
+  
+  try {
+    const res = await API.post('/passengers/register', data);
+    
+    if (res.ok) {
+      bootstrap.Modal.getInstance(document.getElementById('registerPassengerModal')).hide();
+      showSuccess('Passenger registered successfully!');
+      loadPassengers();
+    } else {
+      let errorMessage = res.data.message || 'Failed to register passenger';
+      
+      if (res.data.errors && Array.isArray(res.data.errors)) {
+        errorMessage = '<strong>Validation errors:</strong><ul class="mb-0 mt-2">' + 
+          res.data.errors.map(err => `<li>${err}</li>`).join('') + '</ul>';
+      }
+      
+      errorDiv.innerHTML = errorMessage;
+      errorDiv.classList.remove('d-none');
+    }
+  } catch (error) {
+    errorDiv.innerHTML = 'Unable to connect to server. Please check your connection.';
+    errorDiv.classList.remove('d-none');
+  }
+}
+
+// View Passenger Details
+async function viewPassengerDetails(passengerId) {
+  const modal = new bootstrap.Modal(document.getElementById('passengerDetailsModal'));
+  const content = document.getElementById('passengerDetailsContent');
+  
+  content.innerHTML = '<div class="text-center py-4"><div class="spinner-border"></div><p class="text-muted mt-2">Loading...</p></div>';
+  modal.show();
+  
+  try {
+    const res = await API.get(`/passengers/${passengerId}`);
+    
+    if (res.ok) {
+      const passenger = res.data;
+      displayPassengerDetails(passenger);
+    } else {
+      content.innerHTML = '<div class="alert alert-danger">Failed to load passenger details</div>';
+    }
+  } catch (error) {
+    content.innerHTML = '<div class="alert alert-danger">Error loading passenger details</div>';
+  }
+}
+
+function displayPassengerDetails(passenger) {
+  const content = document.getElementById('passengerDetailsContent');
+  
+  content.innerHTML = `
+    <div class="row">
+      <div class="col-md-6">
+        <h6 class="text-muted mb-3">Personal Information</h6>
+        <table class="table table-sm">
+          <tr><td><strong>ID:</strong></td><td>#${passenger.id}</td></tr>
+          <tr><td><strong>Full Name:</strong></td><td>${passenger.full_name}</td></tr>
+          <tr><td><strong>National ID:</strong></td><td>${passenger.national_id || 'Not provided'}</td></tr>
+          <tr><td><strong>Passport:</strong></td><td>${passenger.passport_number || 'Not provided'}</td></tr>
+          <tr><td><strong>Phone:</strong></td><td>${passenger.phone || 'Not provided'}</td></tr>
+          <tr><td><strong>Registered:</strong></td><td>${formatDateTime(passenger.created_at)}</td></tr>
+        </table>
+      </div>
+      <div class="col-md-6">
+        <h6 class="text-muted mb-3">Travel Statistics</h6>
+        <table class="table table-sm">
+          <tr><td><strong>Total Tickets:</strong></td><td>${passenger.total_tickets || 0}</td></tr>
+          <tr><td><strong>Active Tickets:</strong></td><td>${passenger.active_tickets || 0}</td></tr>
+          <tr><td><strong>Total Boardings:</strong></td><td>${passenger.total_boardings || 0}</td></tr>
+          <tr><td><strong>Last Boarding:</strong></td><td>${passenger.last_boarding ? formatDateTime(passenger.last_boarding) : 'Never'}</td></tr>
+        </table>
+        
+        <h6 class="text-muted mb-2 mt-3">Biometric Status</h6>
+        <div class="alert alert-success">
+          <i class="bi bi-fingerprint"></i> Fingerprint registered
+        </div>
+      </div>
+    </div>
+    
+    ${passenger.tickets && passenger.tickets.length > 0 ? `
+      <hr>
+      <h6 class="text-muted mb-3">Recent Tickets</h6>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Ticket ID</th>
+              <th>Trip</th>
+              <th>Seat</th>
+              <th>Status</th>
+              <th>Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${passenger.tickets.slice(0, 5).map(ticket => `
+              <tr>
+                <td>#${ticket.id}</td>
+                <td>${ticket.trip_info || 'N/A'}</td>
+                <td>${ticket.seat_number || 'Not assigned'}</td>
+                <td><span class="badge bg-${ticket.is_used ? 'secondary' : 'success'}">${ticket.is_used ? 'Used' : 'Active'}</span></td>
+                <td>${formatDate(ticket.created_at)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    ` : '<p class="text-muted text-center py-3">No tickets found</p>'}
+  `;
+}
+
+// Assign Ticket
+async function assignTicket(passengerId) {
+  const tripId = prompt('Enter Trip ID to assign ticket:');
+  
+  if (!tripId || isNaN(tripId)) {
+    alert('Please enter a valid Trip ID');
+    return;
+  }
+  
+  try {
+    const res = await API.post('/tickets/assign', {
+      passenger_id: passengerId,
+      trip_id: parseInt(tripId)
+    });
+    
+    if (res.ok) {
+      showSuccess('Ticket assigned successfully!');
+      loadPassengers();
+    } else {
+      showError(res.data.message || 'Failed to assign ticket');
+    }
+  } catch (error) {
+    showError('Error assigning ticket');
+  }
+}
+
+// Delete Passenger
+async function deletePassenger(passengerId, passengerName) {
+  if (!confirm(`Are you sure you want to delete ${passengerName}? This will also delete all associated tickets and boarding records.`)) {
+    return;
+  }
+  
+  try {
+    const res = await API.delete(`/passengers/${passengerId}`);
+    
+    if (res.ok) {
+      showSuccess('Passenger deleted successfully!');
+      loadPassengers();
+    } else {
+      showError(res.data.message || 'Failed to delete passenger');
+    }
+  } catch (error) {
+    showError('Error deleting passenger');
+  }
 }

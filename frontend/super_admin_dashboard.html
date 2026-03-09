@@ -320,10 +320,111 @@
 
       <section id="section-passengers" class="content-section">
         <div class="section-header">
-          <h2><i class="bi bi-person-badge"></i> Passengers</h2>
+          <h2><i class="bi bi-person-badge"></i> Passenger Management</h2>
+          <button class="btn btn-primary" onclick="showRegisterPassengerModal()">
+            <i class="bi bi-plus-circle"></i> Register Passenger
+          </button>
         </div>
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i> Passenger management interface coming soon...
+
+        <!-- Stats Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary">
+                <i class="bi bi-people"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">Total Passengers</div>
+                <div class="stat-value" id="totalPassengersCount">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-success">
+                <i class="bi bi-ticket-perforated"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">Active Tickets</div>
+                <div class="stat-value" id="activeTicketsCount">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-info">
+                <i class="bi bi-clock-history"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">Today's Boardings</div>
+                <div class="stat-value" id="todayBoardingsCount">0</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning">
+                <i class="bi bi-person-plus"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">New This Week</div>
+                <div class="stat-value" id="newPassengersCount">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <input type="text" class="form-control" id="searchPassengers" 
+                       placeholder="Search by name, national ID, phone..." 
+                       onkeyup="filterPassengers()">
+              </div>
+              <div class="col-md-3">
+                <select class="form-select" id="filterPassengerPeriod" onchange="filterPassengers()">
+                  <option value="">All Time</option>
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                </select>
+              </div>
+              <div class="col-md-3">
+                <button class="btn btn-outline-secondary w-100" onclick="loadPassengers()">
+                  <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Passengers Table -->
+        <div class="card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Full Name</th>
+                    <th>National ID</th>
+                    <th>Phone</th>
+                    <th>Tickets</th>
+                    <th>Last Boarding</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="passengersTableBody">
+                  <tr><td colspan="8" class="text-center">Loading passengers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="passengersPagination" class="d-flex justify-content-between align-items-center mt-3">
+            </div>
+          </div>
         </div>
       </section>
 
@@ -431,6 +532,73 @@
           <button type="button" class="btn btn-primary" onclick="updateUser()">
             <i class="bi bi-check-circle"></i> Save Changes
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Passenger Modal -->
+  <div class="modal fade" id="registerPassengerModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus"></i> Register New Passenger</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="registerPassengerForm">
+            <div class="mb-3">
+              <label class="form-label">Full Name *</label>
+              <input type="text" class="form-control" name="full_name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">National ID</label>
+              <input type="text" class="form-control" name="national_id" 
+                     placeholder="Optional - 16 digits">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Passport Number</label>
+              <input type="text" class="form-control" name="passport_number" 
+                     placeholder="Optional">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Phone Number</label>
+              <input type="tel" class="form-control" name="phone" 
+                     placeholder="Optional - e.g., +250788123456">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Fingerprint Template *</label>
+              <input type="text" class="form-control" name="fingerprint" required>
+              <small class="text-muted">Simulated biometric data or use: fp_<span id="randomPassengerFp"></span></small>
+            </div>
+            <div id="registerPassengerError" class="alert alert-danger d-none"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="registerPassenger()">
+            <i class="bi bi-check-circle"></i> Register Passenger
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Passenger Details Modal -->
+  <div class="modal fade" id="passengerDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-badge"></i> Passenger Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="passengerDetailsContent">
+          <div class="text-center py-4">
+            <div class="spinner-border"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
