@@ -16,6 +16,8 @@ const tripsDashboardRoutes = require("./trips_dashboard");
 const vehiclesRoutes = require("./vehicles");
 const ticketsRoutes = require("./tickets");
 const scanRoutes = require("./scan");
+const analyticsRoutes = require("./analytics");
+const settingsRoutes = require("./settings");
 
 console.log("All route modules imported successfully");
 
@@ -32,6 +34,9 @@ router.use("/trips", tripsDashboardRoutes);
 router.use("/vehicles", vehiclesRoutes);
 router.use("/tickets", ticketsRoutes);
 router.use("/scan", scanRoutes);
+router.use("/analytics", analyticsRoutes);
+router.use("/settings", settingsRoutes);
+router.use("/system", settingsRoutes); // System endpoints also use settings routes
 
 console.log("All routes mounted successfully");
 

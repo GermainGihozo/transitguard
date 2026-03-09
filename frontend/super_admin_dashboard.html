@@ -431,18 +431,403 @@
       <section id="section-analytics" class="content-section">
         <div class="section-header">
           <h2><i class="bi bi-graph-up"></i> Analytics & Reports</h2>
+          <div>
+            <select class="form-select form-select-sm d-inline-block w-auto me-2" id="analyticsTimeRange" onchange="loadAnalytics()">
+              <option value="7">Last 7 Days</option>
+              <option value="30" selected>Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
+              <option value="365">Last Year</option>
+            </select>
+            <button class="btn btn-sm btn-outline-primary" onclick="exportReport()">
+              <i class="bi bi-download"></i> Export Report
+            </button>
+          </div>
         </div>
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i> Analytics dashboard coming soon...
+
+        <!-- Key Metrics -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary">
+                <i class="bi bi-people"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">Total Passengers</div>
+                <div class="stat-value" id="analyticsPassengers">0</div>
+                <div class="stat-change" id="analyticsPassengersChange">
+                  <i class="bi bi-dash"></i> 0% vs previous period
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-success">
+                <i class="bi bi-check-circle"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">Total Boardings</div>
+                <div class="stat-value" id="analyticsBoardings">0</div>
+                <div class="stat-change" id="analyticsBoardingsChange">
+                  <i class="bi bi-dash"></i> 0% vs previous period
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning">
+                <i class="bi bi-bus-front"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">Total Trips</div>
+                <div class="stat-value" id="analyticsTrips">0</div>
+                <div class="stat-change" id="analyticsTripsChange">
+                  <i class="bi bi-dash"></i> 0% vs previous period
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="stat-card">
+              <div class="stat-icon bg-info">
+                <i class="bi bi-percent"></i>
+              </div>
+              <div class="stat-details">
+                <div class="stat-label">Approval Rate</div>
+                <div class="stat-value" id="analyticsApprovalRate">0%</div>
+                <div class="stat-change positive">
+                  <i class="bi bi-arrow-up"></i> High performance
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="row g-3 mb-4">
+          <div class="col-lg-8">
+            <div class="card">
+              <div class="card-header">
+                <h5><i class="bi bi-graph-up"></i> Boarding Trends</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="boardingTrendsChart" height="80"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5><i class="bi bi-pie-chart"></i> Boarding Status</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="boardingStatusChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="row g-3 mb-4">
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5><i class="bi bi-building"></i> Top Companies by Trips</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="companiesChart" height="80"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-header">
+                <h5><i class="bi bi-geo-alt"></i> Top Routes</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="routesChart" height="80"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Peak Hours -->
+        <div class="row g-3 mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5><i class="bi bi-clock"></i> Peak Boarding Hours</h5>
+              </div>
+              <div class="card-body">
+                <canvas id="peakHoursChart" height="60"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reports Table -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-file-earmark-text"></i> Detailed Reports</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Total Boardings</th>
+                    <th>Approved</th>
+                    <th>Denied</th>
+                    <th>Approval Rate</th>
+                    <th>Unique Passengers</th>
+                  </tr>
+                </thead>
+                <tbody id="analyticsReportsTable">
+                  <tr><td colspan="6" class="text-center">Loading reports...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
       <section id="section-settings" class="content-section">
         <div class="section-header">
           <h2><i class="bi bi-gear"></i> System Settings</h2>
+          <button class="btn btn-primary" onclick="saveAllSettings()">
+            <i class="bi bi-save"></i> Save All Changes
+          </button>
         </div>
-        <div class="alert alert-info">
-          <i class="bi bi-info-circle"></i> Settings panel coming soon...
+
+        <!-- General Settings -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-sliders"></i> General Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">System Name</label>
+                <input type="text" class="form-control" id="settingSystemName" value="TransitGuard">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">System Email</label>
+                <input type="email" class="form-control" id="settingSystemEmail" value="admin@transitguard.com">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Default Language</label>
+                <select class="form-select" id="settingLanguage">
+                  <option value="en" selected>English</option>
+                  <option value="fr">French</option>
+                  <option value="rw">Kinyarwanda</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Timezone</label>
+                <select class="form-select" id="settingTimezone">
+                  <option value="Africa/Kigali" selected>Africa/Kigali (CAT)</option>
+                  <option value="UTC">UTC</option>
+                  <option value="Africa/Nairobi">Africa/Nairobi (EAT)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Security Settings -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-shield-check"></i> Security Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Session Timeout (minutes)</label>
+                <input type="number" class="form-control" id="settingSessionTimeout" value="60" min="15" max="480">
+                <small class="text-muted">Users will be logged out after this period of inactivity</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Password Minimum Length</label>
+                <input type="number" class="form-control" id="settingPasswordLength" value="8" min="6" max="32">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Max Login Attempts</label>
+                <input type="number" class="form-control" id="settingMaxLoginAttempts" value="5" min="3" max="10">
+                <small class="text-muted">Account will be locked after this many failed attempts</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Account Lockout Duration (minutes)</label>
+                <input type="number" class="form-control" id="settingLockoutDuration" value="30" min="5" max="1440">
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingRequire2FA">
+                  <label class="form-check-label" for="settingRequire2FA">
+                    Require Two-Factor Authentication for all users
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingPasswordExpiry" checked>
+                  <label class="form-check-label" for="settingPasswordExpiry">
+                    Require password change every 90 days
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Biometric Settings -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-fingerprint"></i> Biometric Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Fingerprint Match Threshold (%)</label>
+                <input type="number" class="form-control" id="settingFingerprintThreshold" value="85" min="70" max="99">
+                <small class="text-muted">Higher values require more precise matches</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Max Verification Attempts</label>
+                <input type="number" class="form-control" id="settingMaxVerificationAttempts" value="3" min="1" max="5">
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingFallbackToManual" checked>
+                  <label class="form-check-label" for="settingFallbackToManual">
+                    Allow manual verification if biometric fails
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingLogBiometricAttempts" checked>
+                  <label class="form-check-label" for="settingLogBiometricAttempts">
+                    Log all biometric verification attempts
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-bell"></i> Notification Settings</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingEmailNotifications" checked>
+                  <label class="form-check-label" for="settingEmailNotifications">
+                    Enable email notifications
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingSMSNotifications">
+                  <label class="form-check-label" for="settingSMSNotifications">
+                    Enable SMS notifications
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingNotifyNewUser" checked>
+                  <label class="form-check-label" for="settingNotifyNewUser">
+                    Notify admins when new users are created
+                  </label>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingNotifyFailedLogin" checked>
+                  <label class="form-check-label" for="settingNotifyFailedLogin">
+                    Notify admins of failed login attempts
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Maintenance -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h5><i class="bi bi-tools"></i> System Maintenance</h5>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Auto-delete old logs after (days)</label>
+                <input type="number" class="form-control" id="settingLogRetention" value="90" min="30" max="365">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Database Backup Frequency</label>
+                <select class="form-select" id="settingBackupFrequency">
+                  <option value="daily" selected>Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="settingMaintenanceMode">
+                  <label class="form-check-label" for="settingMaintenanceMode">
+                    Enable Maintenance Mode (blocks all non-admin access)
+                  </label>
+                </div>
+              </div>
+            </div>
+            <hr>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-warning" onclick="clearCache()">
+                <i class="bi bi-trash"></i> Clear Cache
+              </button>
+              <button class="btn btn-outline-info" onclick="runDatabaseBackup()">
+                <i class="bi bi-database"></i> Run Database Backup
+              </button>
+              <button class="btn btn-outline-danger" onclick="viewAuditLogs()">
+                <i class="bi bi-file-text"></i> View Audit Logs
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="card">
+          <div class="card-header">
+            <h5><i class="bi bi-info-circle"></i> System Information</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <table class="table table-sm">
+                  <tr><td><strong>Version:</strong></td><td>1.0.0</td></tr>
+                  <tr><td><strong>Database:</strong></td><td>MySQL 8.0</td></tr>
+                  <tr><td><strong>Server:</strong></td><td>Node.js v25.1.0</td></tr>
+                  <tr><td><strong>Uptime:</strong></td><td id="systemUptime">Loading...</td></tr>
+                </table>
+              </div>
+              <div class="col-md-6">
+                <table class="table table-sm">
+                  <tr><td><strong>Total Users:</strong></td><td id="systemTotalUsers">0</td></tr>
+                  <tr><td><strong>Total Passengers:</strong></td><td id="systemTotalPassengers">0</td></tr>
+                  <tr><td><strong>Total Trips:</strong></td><td id="systemTotalTrips">0</td></tr>
+                  <tr><td><strong>Database Size:</strong></td><td id="systemDatabaseSize">Calculating...</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

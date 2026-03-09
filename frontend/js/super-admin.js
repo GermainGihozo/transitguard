@@ -78,6 +78,12 @@ function showSection(sectionName) {
       case 'passengers':
         loadPassengers();
         break;
+      case 'analytics':
+        loadAnalytics();
+        break;
+      case 'settings':
+        loadSettings();
+        break;
     }
   }
 }
@@ -1168,4 +1174,458 @@ async function deletePassenger(passengerId, passengerName) {
   } catch (error) {
     showError('Error deleting passenger');
   }
+}
+
+
+// ==================== ANALYTICS ====================
+
+let boardingTrendsChart = null;
+let boardingStatusChart = null;
+let companiesChart = null;
+let routesChart = null;
+let peakHoursChart = null;
+
+async function loadAnalytics() {
+  const timeRange = document.getElementById('analyticsTimeRange')?.value || 30;
+  
+  try {
+    const res = await API.get(`/analytics?days=${timeRange}`);
+    
+    if (res.ok) {
+      const data = res.data;
+      updateAnalyticsMetrics(data.metrics);
+      updateBoardingTrendsChart(data.trends);
+      updateBoardingStatusChart(data.status);
+      updateCompaniesChart(data.companies);
+      updateRoutesChart(data.routes);
+      updatePeakHoursChart(data.peakHours);
+      updateAnalyticsReportsTable(data.dailyReports);
+    }
+  } catch (error) {
+    console.error('Error loading analytics:', error);
+  }
+}
+
+function updateAnalyticsMetrics(metrics) {
+  if (!metrics) return;
+  
+  document.getElementById('analyticsPassengers').textContent = metrics.totalPassengers || 0;
+  document.getElementById('analyticsBoardings').textContent = metrics.totalBoardings || 0;
+  document.getElementById('analyticsTrips').textContent = metrics.totalTrips || 0;
+  document.getElementById('analyticsApprovalRate').textContent = `${metrics.approvalRate || 0}%`;
+  
+  // Update change indicators
+  updateChangeIndicator('analyticsPassengersChange', metrics.passengersChange);
+  updateChangeIndicator('analyticsBoardingsChange', metrics.boardingsChange);
+  updateChangeIndicator('analyticsTripsChange', metrics.tripsChange);
+}
+
+function updateChangeIndicator(elementId, change) {
+  const element = document.getElementById(elementId);
+  if (!element || change === undefined) return;
+  
+  const isPositive = change >= 0;
+  element.className = `stat-change ${isPositive ? 'positive' : 'negative'}`;
+  element.innerHTML = `
+    <i class="bi bi-arrow-${isPositive ? 'up' : 'down'}"></i> 
+    ${Math.abs(change)}% vs previous period
+  `;
+}
+
+function updateBoardingTrendsChart(trends) {
+  const ctx = document.getElementById('boardingTrendsChart');
+  if (!ctx) return;
+  
+  if (boardingTrendsChart) {
+    boardingTrendsChart.destroy();
+  }
+  
+  const labels = trends?.map(t => formatDate(t.date)) || [];
+  const approved = trends?.map(t => t.approved) || [];
+  const denied = trends?.map(t => t.denied) || [];
+  
+  boardingTrendsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Approved',
+        data: approved,
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4,
+        fill: true
+      }, {
+        label: 'Denied',
+        data: denied,
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#94a3b8' }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#334155' },
+          ticks: { color: '#94a3b8' }
+        },
+        x: {
+          grid: { color: '#334155' },
+          ticks: { color: '#94a3b8' }
+        }
+      }
+    }
+  });
+}
+
+function updateBoardingStatusChart(status) {
+  const ctx = document.getElementById('boardingStatusChart');
+  if (!ctx) return;
+  
+  if (boardingStatusChart) {
+    boardingStatusChart.destroy();
+  }
+  
+  boardingStatusChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Approved', 'Denied'],
+      datasets: [{
+        data: [status?.approved || 0, status?.denied || 0],
+        backgroundColor: ['#22c55e', '#ef4444'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#94a3b8' }
+        }
+      }
+    }
+  });
+}
+
+function updateCompaniesChart(companies) {
+  const ctx = document.getElementById('companiesChart');
+  if (!ctx) return;
+  
+  if (companiesChart) {
+    companiesChart.destroy();
+  }
+  
+  const labels = companies?.map(c => c.company_name) || [];
+  const data = companies?.map(c => c.trip_count) || [];
+  
+  companiesChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Number of Trips',
+        data,
+        backgroundColor: '#3b82f6',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#334155' },
+          ticks: { color: '#94a3b8' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8' }
+        }
+      }
+    }
+  });
+}
+
+function updateRoutesChart(routes) {
+  const ctx = document.getElementById('routesChart');
+  if (!ctx) return;
+  
+  if (routesChart) {
+    routesChart.destroy();
+  }
+  
+  const labels = routes?.map(r => r.route_name) || [];
+  const data = routes?.map(r => r.boarding_count) || [];
+  
+  routesChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Boardings',
+        data,
+        backgroundColor: '#f59e0b',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: '#334155' },
+          ticks: { color: '#94a3b8' }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8' }
+        }
+      }
+    }
+  });
+}
+
+function updatePeakHoursChart(peakHours) {
+  const ctx = document.getElementById('peakHoursChart');
+  if (!ctx) return;
+  
+  if (peakHoursChart) {
+    peakHoursChart.destroy();
+  }
+  
+  const labels = Array.from({length: 24}, (_, i) => `${i}:00`);
+  const data = peakHours || Array(24).fill(0);
+  
+  peakHoursChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Boardings',
+        data,
+        backgroundColor: '#06b6d4',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#334155' },
+          ticks: { color: '#94a3b8' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8' }
+        }
+      }
+    }
+  });
+}
+
+function updateAnalyticsReportsTable(reports) {
+  const tbody = document.getElementById('analyticsReportsTable');
+  if (!tbody) return;
+  
+  if (!reports || reports.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No data available</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = reports.map(report => {
+    const approvalRate = report.total > 0 ? Math.round((report.approved / report.total) * 100) : 0;
+    return `
+      <tr>
+        <td>${formatDate(report.date)}</td>
+        <td>${report.total}</td>
+        <td><span class="badge bg-success">${report.approved}</span></td>
+        <td><span class="badge bg-danger">${report.denied}</span></td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <div class="progress flex-grow-1" style="height: 8px;">
+              <div class="progress-bar bg-success" style="width: ${approvalRate}%"></div>
+            </div>
+            <span class="text-sm">${approvalRate}%</span>
+          </div>
+        </td>
+        <td>${report.unique_passengers}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function exportReport() {
+  const timeRange = document.getElementById('analyticsTimeRange')?.value || 30;
+  alert(`Exporting ${timeRange}-day report... (Feature coming soon)`);
+  // TODO: Implement CSV/PDF export
+}
+
+// ==================== SETTINGS ====================
+
+async function loadSettings() {
+  try {
+    const res = await API.get('/settings');
+    
+    if (res.ok) {
+      const settings = res.data;
+      populateSettings(settings);
+    }
+    
+    // Load system info
+    loadSystemInfo();
+  } catch (error) {
+    console.error('Error loading settings:', error);
+  }
+}
+
+function populateSettings(settings) {
+  // General Settings
+  if (settings.systemName) document.getElementById('settingSystemName').value = settings.systemName;
+  if (settings.systemEmail) document.getElementById('settingSystemEmail').value = settings.systemEmail;
+  if (settings.language) document.getElementById('settingLanguage').value = settings.language;
+  if (settings.timezone) document.getElementById('settingTimezone').value = settings.timezone;
+  
+  // Security Settings
+  if (settings.sessionTimeout) document.getElementById('settingSessionTimeout').value = settings.sessionTimeout;
+  if (settings.passwordLength) document.getElementById('settingPasswordLength').value = settings.passwordLength;
+  if (settings.maxLoginAttempts) document.getElementById('settingMaxLoginAttempts').value = settings.maxLoginAttempts;
+  if (settings.lockoutDuration) document.getElementById('settingLockoutDuration').value = settings.lockoutDuration;
+  if (settings.require2FA !== undefined) document.getElementById('settingRequire2FA').checked = settings.require2FA;
+  if (settings.passwordExpiry !== undefined) document.getElementById('settingPasswordExpiry').checked = settings.passwordExpiry;
+  
+  // Biometric Settings
+  if (settings.fingerprintThreshold) document.getElementById('settingFingerprintThreshold').value = settings.fingerprintThreshold;
+  if (settings.maxVerificationAttempts) document.getElementById('settingMaxVerificationAttempts').value = settings.maxVerificationAttempts;
+  if (settings.fallbackToManual !== undefined) document.getElementById('settingFallbackToManual').checked = settings.fallbackToManual;
+  if (settings.logBiometricAttempts !== undefined) document.getElementById('settingLogBiometricAttempts').checked = settings.logBiometricAttempts;
+  
+  // Notification Settings
+  if (settings.emailNotifications !== undefined) document.getElementById('settingEmailNotifications').checked = settings.emailNotifications;
+  if (settings.smsNotifications !== undefined) document.getElementById('settingSMSNotifications').checked = settings.smsNotifications;
+  if (settings.notifyNewUser !== undefined) document.getElementById('settingNotifyNewUser').checked = settings.notifyNewUser;
+  if (settings.notifyFailedLogin !== undefined) document.getElementById('settingNotifyFailedLogin').checked = settings.notifyFailedLogin;
+  
+  // Maintenance Settings
+  if (settings.logRetention) document.getElementById('settingLogRetention').value = settings.logRetention;
+  if (settings.backupFrequency) document.getElementById('settingBackupFrequency').value = settings.backupFrequency;
+  if (settings.maintenanceMode !== undefined) document.getElementById('settingMaintenanceMode').checked = settings.maintenanceMode;
+}
+
+async function saveAllSettings() {
+  const settings = {
+    // General
+    systemName: document.getElementById('settingSystemName').value,
+    systemEmail: document.getElementById('settingSystemEmail').value,
+    language: document.getElementById('settingLanguage').value,
+    timezone: document.getElementById('settingTimezone').value,
+    
+    // Security
+    sessionTimeout: parseInt(document.getElementById('settingSessionTimeout').value),
+    passwordLength: parseInt(document.getElementById('settingPasswordLength').value),
+    maxLoginAttempts: parseInt(document.getElementById('settingMaxLoginAttempts').value),
+    lockoutDuration: parseInt(document.getElementById('settingLockoutDuration').value),
+    require2FA: document.getElementById('settingRequire2FA').checked,
+    passwordExpiry: document.getElementById('settingPasswordExpiry').checked,
+    
+    // Biometric
+    fingerprintThreshold: parseInt(document.getElementById('settingFingerprintThreshold').value),
+    maxVerificationAttempts: parseInt(document.getElementById('settingMaxVerificationAttempts').value),
+    fallbackToManual: document.getElementById('settingFallbackToManual').checked,
+    logBiometricAttempts: document.getElementById('settingLogBiometricAttempts').checked,
+    
+    // Notifications
+    emailNotifications: document.getElementById('settingEmailNotifications').checked,
+    smsNotifications: document.getElementById('settingSMSNotifications').checked,
+    notifyNewUser: document.getElementById('settingNotifyNewUser').checked,
+    notifyFailedLogin: document.getElementById('settingNotifyFailedLogin').checked,
+    
+    // Maintenance
+    logRetention: parseInt(document.getElementById('settingLogRetention').value),
+    backupFrequency: document.getElementById('settingBackupFrequency').value,
+    maintenanceMode: document.getElementById('settingMaintenanceMode').checked
+  };
+  
+  try {
+    const res = await API.post('/settings', settings);
+    
+    if (res.ok) {
+      showSuccess('Settings saved successfully!');
+    } else {
+      showError('Failed to save settings');
+    }
+  } catch (error) {
+    showError('Error saving settings');
+  }
+}
+
+async function loadSystemInfo() {
+  try {
+    const res = await API.get('/system/info');
+    
+    if (res.ok) {
+      const info = res.data;
+      document.getElementById('systemUptime').textContent = info.uptime || 'N/A';
+      document.getElementById('systemTotalUsers').textContent = info.totalUsers || 0;
+      document.getElementById('systemTotalPassengers').textContent = info.totalPassengers || 0;
+      document.getElementById('systemTotalTrips').textContent = info.totalTrips || 0;
+      document.getElementById('systemDatabaseSize').textContent = info.databaseSize || 'N/A';
+    }
+  } catch (error) {
+    console.error('Error loading system info:', error);
+  }
+}
+
+function clearCache() {
+  if (confirm('Are you sure you want to clear the system cache?')) {
+    API.post('/system/clear-cache').then(res => {
+      if (res.ok) {
+        showSuccess('Cache cleared successfully!');
+      } else {
+        showError('Failed to clear cache');
+      }
+    });
+  }
+}
+
+function runDatabaseBackup() {
+  if (confirm('Start database backup now?')) {
+    showSuccess('Database backup started. You will be notified when complete.');
+    API.post('/system/backup').then(res => {
+      if (res.ok) {
+        showSuccess('Database backup completed successfully!');
+      } else {
+        showError('Database backup failed');
+      }
+    });
+  }
+}
+
+function viewAuditLogs() {
+  alert('Audit logs viewer coming soon...');
+  // TODO: Implement audit logs modal
 }
