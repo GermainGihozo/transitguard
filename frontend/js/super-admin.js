@@ -1188,8 +1188,12 @@ let peakHoursChart = null;
 async function loadAnalytics() {
   const timeRange = document.getElementById('analyticsTimeRange')?.value || 30;
   
+  console.log(`Loading analytics for ${timeRange} days...`);
+  
   try {
     const res = await API.get(`/analytics?days=${timeRange}`);
+    
+    console.log('Analytics API response:', res);
     
     if (res.ok) {
       const data = res.data;
@@ -1202,13 +1206,15 @@ async function loadAnalytics() {
       updateRoutesChart(data.routes || []);
       updatePeakHoursChart(data.peakHours || Array(24).fill(0));
       updateAnalyticsReportsTable(data.dailyReports || []);
+      
+      console.log('✓ Analytics loaded successfully');
     } else {
       console.error('Analytics API error:', res);
-      showError('Failed to load analytics data');
+      alert('Failed to load analytics data: ' + (res.data?.message || 'Unknown error'));
     }
   } catch (error) {
     console.error('Error loading analytics:', error);
-    showError('Error loading analytics: ' + error.message);
+    alert('Error loading analytics: ' + error.message);
   }
 }
 
