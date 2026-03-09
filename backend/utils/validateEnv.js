@@ -1,6 +1,6 @@
 // Environment validation on startup
 function validateEnv() {
-  const required = ["JWT_SECRET"];
+  const required = ["JWT_SECRET", "DB_HOST", "DB_USER", "DB_NAME"];
   const missing = [];
 
   required.forEach((key) => {
@@ -8,11 +8,6 @@ function validateEnv() {
       missing.push(key);
     }
   });
-
-  // Check for database connection in production
-  if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
-    missing.push("DATABASE_URL");
-  }
 
   if (missing.length > 0) {
     console.error("✗ Missing required environment variables:");

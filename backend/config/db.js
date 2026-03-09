@@ -1,53 +1,28 @@
-const { Pool } = require("pg");
+const mysql = require("mysql2/promise");
 
-// Create PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false
-  } : false,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+// Create MySQL connection pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "",
+  database: process.env.DB_NAME || "transitguard_prod",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0,
+  enableKeepAlive: true,
+  keepAliveInitialDelay: 0
 });
 
 // Test connection on startup
 (async () => {
   try {
-    const client = await pool.connect();
-    console.log("✓ PostgreSQL Connected...");
-    client.release();
+    const connection = await pool.getConnection();
+    console.log("✓ MySQL Connected...");
+    connection.release();
   } catch (err) {
     console.error("✗ Database connection failed:", err.message);
     process.exit(1);
   }
 })();
 
-// Handle pool errors
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
-});
-
-// Wrapper to make PostgreSQL queries compatible with MySQL2 promise syntax
-const query = async (text, params) => {
-  const start = Date.now();
-  try {
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
-    return [res.rows, res.fields];
-  } catch (error) {
-    console.error('Query error', { text, error: error.message });
-    throw error;
-  }
-};
-
-// Export both pool and query wrapper
-module.exports = {
-  query,
-  pool,
-  // For compatibility with existing code
-  execute: query,
-  getConnection: () => pool.connect()
-};
+module.exports = pool;
