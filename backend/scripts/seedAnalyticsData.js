@@ -45,7 +45,7 @@ async function seedAnalyticsData() {
     console.log(`Found ${passengerIds.length} passengers and ${tripIds.length} trips`);
     
     // Generate boarding history for the last 30 days
-    console.log('Generating boarding history...');
+    console.log('Generating boarding history with tickets...');
     
     const now = new Date();
     let recordsCreated = 0;
@@ -71,14 +71,24 @@ async function seedAnalyticsData() {
         const status = Math.random() < 0.9 ? 'approved' : 'denied';
         
         try {
+          // First create a ticket for this passenger and trip
+          const [ticketResult] = await db.execute(
+            `INSERT INTO tickets (passenger_id, trip_id, is_used)
+             VALUES (?, ?, ?)`,
+            [passengerId, tripId, status === 'approved' ? 1 : 0]
+          );
+          
+          const ticketId = ticketResult.insertId;
+          
+          // Then create the boarding history record
           await db.execute(
-            `INSERT INTO boarding_history (passenger_id, trip_id, scan_time, status)
-             VALUES (?, ?, ?, ?)`,
-            [passengerId, tripId, date.toISOString().slice(0, 19).replace('T', ' '), status]
+            `INSERT INTO boarding_history (passenger_id, ticket_id, trip_id, scan_time, status)
+             VALUES (?, ?, ?, ?, ?)`,
+            [passengerId, ticketId, tripId, date.toISOString().slice(0, 19).replace('T', ' '), status]
           );
           recordsCreated++;
         } catch (err) {
-          // Skip duplicates
+          // Skip duplicates or other errors
           if (!err.message.includes('Duplicate')) {
             console.error('Error inserting record:', err.message);
           }
@@ -86,7 +96,7 @@ async function seedAnalyticsData() {
       }
     }
     
-    console.log(`✓ Created ${recordsCreated} boarding history records`);
+    console.log(`✓ Created ${recordsCreated} boarding history records with tickets`);
     
     // Show summary
     const [summary] = await db.execute(`
