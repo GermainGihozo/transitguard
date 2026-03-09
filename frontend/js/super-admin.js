@@ -1680,3 +1680,184 @@ function viewAuditLogs() {
   alert('Audit logs viewer coming soon...');
   // TODO: Implement audit logs modal
 }
+
+
+// ==================== NOTIFICATIONS ====================
+
+let notificationsLoaded = false;
+
+// Load notifications on page load
+document.addEventListener('DOMContentLoaded', () => {
+  loadNotifications();
+  
+  // Refresh notifications every 30 seconds
+  setInterval(loadNotifications, 30000);
+  
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('notificationDropdown');
+    const badge = document.querySelector('.notification-badge');
+    
+    if (dropdown && !dropdown.contains(e.target) && !badge.contains(e.target)) {
+      dropdown.classList.remove('show');
+    }
+  });
+});
+
+async function loadNotifications() {
+  try {
+    const res = await API.get('/notifications?limit=10');
+    
+    if (res.ok) {
+      const { notifications, unread_count } = res.data;
+      updateNotificationBadge(unread_count);
+      
+      if (notificationsLoaded) {
+        // Only update the list if dropdown is open or this is not the first load
+        const dropdown = document.getElementById('notificationDropdown');
+        if (dropdown && dropdown.classList.contains('show')) {
+          updateNotificationList(notifications);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading notifications:', error);
+  }
+}
+
+function updateNotificationBadge(count) {
+  const badge = document.getElementById('notificationCount');
+  if (badge) {
+    badge.textContent = count;
+    if (count > 0) {
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+}
+
+function toggleNotifications() {
+  const dropdown = document.getElementById('notificationDropdown');
+  
+  if (dropdown.classList.contains('show')) {
+    dropdown.classList.remove('show');
+  } else {
+    dropdown.classList.add('show');
+    if (!notificationsLoaded) {
+      loadNotificationList();
+    }
+  }
+}
+
+async function loadNotificationList() {
+  const list = document.getElementById('notificationList');
+  list.innerHTML = '<div class="text-center py-4"><div class="spinner-border spinner-border-sm"></div><p class="text-muted small mt-2">Loading...</p></div>';
+  
+  try {
+    const res = await API.get('/notifications?limit=20');
+    
+    if (res.ok) {
+      const { notifications } = res.data;
+      updateNotificationList(notifications);
+      notificationsLoaded = true;
+    }
+  } catch (error) {
+    list.innerHTML = '<div class="notification-empty"><i class="bi bi-exclamation-circle"></i><p>Failed to load notifications</p></div>';
+  }
+}
+
+function updateNotificationList(notifications) {
+  const list = document.getElementById('notificationList');
+  
+  if (!notifications || notifications.length === 0) {
+    list.innerHTML = `
+      <div class="notification-empty">
+        <i class="bi bi-bell-slash"></i>
+        <p>No notifications</p>
+      </div>
+    `;
+    return;
+  }
+  
+  list.innerHTML = notifications.map(notif => createNotificationItem(notif)).join('');
+}
+
+function createNotificationItem(notif) {
+  const iconMap = {
+    info: 'bi-info-circle',
+    success: 'bi-check-circle',
+    warning: 'bi-exclamation-triangle',
+    error: 'bi-x-circle'
+  };
+  
+  const icon = iconMap[notif.type] || iconMap.info;
+  const timeAgo = getTimeAgo(notif.created_at);
+  
+  return `
+    <div class="notification-item ${notif.is_read ? '' : 'unread'}" onclick="handleNotificationClick(${notif.id}, '${notif.link || ''}')">
+      <div class="d-flex">
+        <div class="notification-icon ${notif.type}">
+          <i class="bi ${icon}"></i>
+        </div>
+        <div class="notification-content">
+          <div class="notification-title">${notif.title}</div>
+          <div class="notification-message">${notif.message}</div>
+          <div class="notification-time">${timeAgo}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function handleNotificationClick(notificationId, link) {
+  // Mark as read
+  await markNotificationAsRead(notificationId);
+  
+  // Navigate to link if provided
+  if (link) {
+    window.location.href = link;
+  }
+}
+
+async function markNotificationAsRead(notificationId) {
+  try {
+    await API.put(`/notifications/${notificationId}/read`);
+    loadNotifications(); // Refresh to update badge
+    loadNotificationList(); // Refresh list
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+  }
+}
+
+async function markAllAsRead() {
+  try {
+    const res = await API.put('/notifications/read-all');
+    
+    if (res.ok) {
+      loadNotifications();
+      loadNotificationList();
+    }
+  } catch (error) {
+    console.error('Error marking all as read:', error);
+  }
+}
+
+function viewAllNotifications() {
+  // For now, just show all in the dropdown
+  // In the future, could navigate to a dedicated notifications page
+  loadNotificationList();
+}
+
+function getTimeAgo(timestamp) {
+  const now = new Date();
+  const time = new Date(timestamp);
+  const diff = Math.floor((now - time) / 1000); // seconds
+  
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  
+  return time.toLocaleDateString();
+}

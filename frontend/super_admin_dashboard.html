@@ -69,10 +69,27 @@
         <button class="btn btn-outline-light btn-sm" onclick="refreshData()">
           <i class="bi bi-arrow-clockwise"></i>
         </button>
-        <div class="notification-badge">
+        <div class="notification-badge" onclick="toggleNotifications()">
           <i class="bi bi-bell"></i>
-          <span class="badge">3</span>
+          <span class="badge" id="notificationCount">0</span>
         </div>
+      </div>
+    </div>
+
+    <!-- Notification Dropdown -->
+    <div class="notification-dropdown" id="notificationDropdown">
+      <div class="notification-header">
+        <h6>Notifications</h6>
+        <button class="btn btn-sm btn-link" onclick="markAllAsRead()">Mark all as read</button>
+      </div>
+      <div class="notification-list" id="notificationList">
+        <div class="text-center py-4">
+          <div class="spinner-border spinner-border-sm"></div>
+          <p class="text-muted small mt-2">Loading...</p>
+        </div>
+      </div>
+      <div class="notification-footer">
+        <a href="#" onclick="viewAllNotifications()">View all notifications</a>
       </div>
     </div>
 
