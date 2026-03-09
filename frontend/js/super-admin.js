@@ -1193,16 +1193,22 @@ async function loadAnalytics() {
     
     if (res.ok) {
       const data = res.data;
-      updateAnalyticsMetrics(data.metrics);
-      updateBoardingTrendsChart(data.trends);
-      updateBoardingStatusChart(data.status);
-      updateCompaniesChart(data.companies);
-      updateRoutesChart(data.routes);
-      updatePeakHoursChart(data.peakHours);
-      updateAnalyticsReportsTable(data.dailyReports);
+      console.log('Analytics data received:', data);
+      
+      updateAnalyticsMetrics(data.metrics || {});
+      updateBoardingTrendsChart(data.trends || []);
+      updateBoardingStatusChart(data.status || { approved: 0, denied: 0 });
+      updateCompaniesChart(data.companies || []);
+      updateRoutesChart(data.routes || []);
+      updatePeakHoursChart(data.peakHours || Array(24).fill(0));
+      updateAnalyticsReportsTable(data.dailyReports || []);
+    } else {
+      console.error('Analytics API error:', res);
+      showError('Failed to load analytics data');
     }
   } catch (error) {
     console.error('Error loading analytics:', error);
+    showError('Error loading analytics: ' + error.message);
   }
 }
 
@@ -1234,15 +1240,26 @@ function updateChangeIndicator(elementId, change) {
 
 function updateBoardingTrendsChart(trends) {
   const ctx = document.getElementById('boardingTrendsChart');
-  if (!ctx) return;
+  if (!ctx) {
+    console.warn('boardingTrendsChart canvas not found');
+    return;
+  }
   
   if (boardingTrendsChart) {
     boardingTrendsChart.destroy();
   }
   
-  const labels = trends?.map(t => formatDate(t.date)) || [];
-  const approved = trends?.map(t => t.approved) || [];
-  const denied = trends?.map(t => t.denied) || [];
+  // Ensure we have data
+  if (!trends || trends.length === 0) {
+    console.warn('No trends data available');
+    trends = [];
+  }
+  
+  const labels = trends.map(t => formatDate(t.date));
+  const approved = trends.map(t => t.approved || 0);
+  const denied = trends.map(t => t.denied || 0);
+  
+  console.log('Boarding trends chart data:', { labels, approved, denied });
   
   boardingTrendsChart = new Chart(ctx, {
     type: 'line',
@@ -1320,14 +1337,25 @@ function updateBoardingStatusChart(status) {
 
 function updateCompaniesChart(companies) {
   const ctx = document.getElementById('companiesChart');
-  if (!ctx) return;
+  if (!ctx) {
+    console.warn('companiesChart canvas not found');
+    return;
+  }
   
   if (companiesChart) {
     companiesChart.destroy();
   }
   
-  const labels = companies?.map(c => c.company_name) || [];
-  const data = companies?.map(c => c.trip_count) || [];
+  // Handle empty data
+  if (!companies || companies.length === 0) {
+    console.warn('No companies data available');
+    companies = [{ company_name: 'No Data', trip_count: 0 }];
+  }
+  
+  const labels = companies.map(c => c.company_name);
+  const data = companies.map(c => c.trip_count || 0);
+  
+  console.log('Companies chart data:', { labels, data });
   
   companiesChart = new Chart(ctx, {
     type: 'bar',
@@ -1363,14 +1391,25 @@ function updateCompaniesChart(companies) {
 
 function updateRoutesChart(routes) {
   const ctx = document.getElementById('routesChart');
-  if (!ctx) return;
+  if (!ctx) {
+    console.warn('routesChart canvas not found');
+    return;
+  }
   
   if (routesChart) {
     routesChart.destroy();
   }
   
-  const labels = routes?.map(r => r.route_name) || [];
-  const data = routes?.map(r => r.boarding_count) || [];
+  // Handle empty data
+  if (!routes || routes.length === 0) {
+    console.warn('No routes data available');
+    routes = [{ route_name: 'No Data', boarding_count: 0 }];
+  }
+  
+  const labels = routes.map(r => r.route_name);
+  const data = routes.map(r => r.boarding_count || 0);
+  
+  console.log('Routes chart data:', { labels, data });
   
   routesChart = new Chart(ctx, {
     type: 'bar',

@@ -8,6 +8,9 @@ router.get('/', async (req, res) => {
     const days = parseInt(req.query.days) || 30;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+    const startDateStr = startDate.toISOString().split('T')[0];
+    
+    console.log(`Fetching analytics for last ${days} days from ${startDateStr}`);
     
     // Get metrics for current period
     const [currentMetrics] = await db.execute(`
@@ -15,15 +18,16 @@ router.get('/', async (req, res) => {
         COUNT(DISTINCT p.id) as totalPassengers,
         COUNT(DISTINCT bh.id) as totalBoardings,
         COUNT(DISTINCT t.id) as totalTrips,
-        ROUND(AVG(CASE WHEN bh.status = 'approved' THEN 100 ELSE 0 END), 1) as approvalRate
+        COALESCE(ROUND(AVG(CASE WHEN bh.status = 'approved' THEN 100 ELSE 0 END), 1), 0) as approvalRate
       FROM passengers p
       LEFT JOIN boarding_history bh ON p.id = bh.passenger_id AND bh.scan_time >= ?
       LEFT JOIN trips t ON t.departure_time >= ?
-    `, [startDate, startDate]);
+    `, [startDateStr, startDateStr]);
     
     // Get metrics for previous period (for comparison)
     const previousStartDate = new Date(startDate);
     previousStartDate.setDate(previousStartDate.getDate() - days);
+    const previousStartDateStr = previousStartDate.toISOString().split('T')[0];
     
     const [previousMetrics] = await db.execute(`
       SELECT 
@@ -34,11 +38,14 @@ router.get('/', async (req, res) => {
       LEFT JOIN boarding_history bh ON p.id = bh.passenger_id 
         AND bh.scan_time >= ? AND bh.scan_time < ?
       LEFT JOIN trips t ON t.departure_time >= ? AND t.departure_time < ?
-    `, [previousStartDate, startDate, previousStartDate, startDate]);
+    `, [previousStartDateStr, startDateStr, previousStartDateStr, startDateStr]);
     
     // Calculate percentage changes
     const metrics = {
-      ...currentMetrics[0],
+      totalPassengers: currentMetrics[0].totalPassengers || 0,
+      totalBoardings: currentMetrics[0].totalBoardings || 0,
+      totalTrips: currentMetrics[0].totalTrips || 0,
+      approvalRate: currentMetrics[0].approvalRate || 0,
       passengersChange: calculateChange(currentMetrics[0].totalPassengers, previousMetrics[0].totalPassengers),
       boardingsChange: calculateChange(currentMetrics[0].totalBoardings, previousMetrics[0].totalBoardings),
       tripsChange: calculateChange(currentMetrics[0].totalTrips, previousMetrics[0].totalTrips)
@@ -54,16 +61,21 @@ router.get('/', async (req, res) => {
       WHERE scan_time >= ?
       GROUP BY DATE(scan_time)
       ORDER BY date ASC
-    `, [startDate]);
+    `, [startDateStr]);
     
     // Get boarding status totals
-    const [status] = await db.execute(`
+    const [statusResult] = await db.execute(`
       SELECT 
         SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
         SUM(CASE WHEN status = 'denied' THEN 1 ELSE 0 END) as denied
       FROM boarding_history
       WHERE scan_time >= ?
-    `, [startDate]);
+    `, [startDateStr]);
+    
+    const status = {
+      approved: statusResult[0]?.approved || 0,
+      denied: statusResult[0]?.denied || 0
+    };
     
     // Get top companies
     const [companies] = await db.execute(`
@@ -76,7 +88,7 @@ router.get('/', async (req, res) => {
       GROUP BY v.company_name
       ORDER BY trip_count DESC
       LIMIT 10
-    `, [startDate]);
+    `, [startDateStr]);
     
     // Get top routes
     const [routes] = await db.execute(`
@@ -90,7 +102,7 @@ router.get('/', async (req, res) => {
       GROUP BY r.route_name
       ORDER BY boarding_count DESC
       LIMIT 10
-    `, [startDate]);
+    `, [startDateStr]);
     
     // Get peak hours (0-23)
     const [peakHoursData] = await db.execute(`
@@ -101,7 +113,7 @@ router.get('/', async (req, res) => {
       WHERE scan_time >= ?
       GROUP BY HOUR(scan_time)
       ORDER BY hour
-    `, [startDate]);
+    `, [startDateStr]);
     
     // Fill in missing hours with 0
     const peakHours = Array(24).fill(0);
@@ -122,12 +134,20 @@ router.get('/', async (req, res) => {
       GROUP BY DATE(scan_time)
       ORDER BY date DESC
       LIMIT 30
-    `, [startDate]);
+    `, [startDateStr]);
+    
+    console.log('Analytics data prepared:', {
+      metricsCount: Object.keys(metrics).length,
+      trendsCount: trends.length,
+      companiesCount: companies.length,
+      routesCount: routes.length,
+      reportsCount: dailyReports.length
+    });
     
     res.json({
       metrics,
       trends,
-      status: status[0],
+      status,
       companies,
       routes,
       peakHours,
