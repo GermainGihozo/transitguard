@@ -13,6 +13,7 @@
     "create-user": "node backend/scripts/createTestUser.js",
     "migrate": "node backend/scripts/runMigration.js",
     "seed-stations": "node backend/scripts/seedStations.js",
+    "seed-analytics": "node backend/scripts/seedAnalyticsData.js",
     "test-connection": "node test-connection.js",
     "test-users": "node test-user-management.js",
     "test": "echo \"Error: no test specified\" && exit 1"
