@@ -5,7 +5,7 @@ const CONFIG = {
     window.location.hostname === "localhost"
       ? "http://localhost:5000/api"
       : "/api" // Use relative path in production
-  )
+  ),
   
   // Token storage keys
   TOKEN_KEY: "token",
